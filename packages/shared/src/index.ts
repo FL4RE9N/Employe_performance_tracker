@@ -57,3 +57,13 @@ export type { MetricDefinition, ReviewQuestion, RatingLevel, RatingScale } from 
 // DTOs
 export { loginSchema } from './dto/auth';
 export type { LoginInput, SessionUser } from './dto/auth';
+
+export { createUserSchema, updateUserSchema, createPairingSchema } from './dto/user';
+export type {
+  CreateUserInput,
+  UpdateUserInput,
+  CreatePairingInput,
+  AdminUserDto,
+  DirectoryUserDto,
+  PairingDto,
+} from './dto/user';

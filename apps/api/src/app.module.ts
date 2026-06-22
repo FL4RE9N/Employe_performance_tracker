@@ -10,6 +10,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { HealthModule } from './health/health.module';
 // AuthModule is built by the api-auth agent; imported here per the module contract.
 import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AuthModule } from './auth/auth.module';
     PrismaModule,
     ProvidersModule,
     AuthModule,
+    AdminModule,
     JobsModule,
     HealthModule,
   ],

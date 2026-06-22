@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './auth/ProtectedRoute';
 import AppShell from './components/AppShell';
 import DashboardPage from './pages/DashboardPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 
 const router = createBrowserRouter([
   {
@@ -35,7 +36,7 @@ const router = createBrowserRouter([
             path: 'notifications',
             element: <PlaceholderPage title="Notifications" />,
           },
-          { path: 'admin', element: <PlaceholderPage title="Admin" /> },
+          { path: 'admin', element: <AdminUsersPage /> },
         ],
       },
     ],

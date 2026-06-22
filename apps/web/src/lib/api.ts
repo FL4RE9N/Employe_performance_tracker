@@ -109,3 +109,15 @@ export function get<T = unknown>(path: string): Promise<T> {
 export function post<T = unknown>(path: string, body?: unknown): Promise<T> {
   return apiFetch<T>(path, { method: 'POST', body });
 }
+
+export function put<T = unknown>(path: string, body?: unknown): Promise<T> {
+  return apiFetch<T>(path, { method: 'PUT', body });
+}
+
+export function patch<T = unknown>(path: string, body?: unknown): Promise<T> {
+  return apiFetch<T>(path, { method: 'PATCH', body });
+}
+
+export function del<T = unknown>(path: string): Promise<T> {
+  return apiFetch<T>(path, { method: 'DELETE' });
+}
