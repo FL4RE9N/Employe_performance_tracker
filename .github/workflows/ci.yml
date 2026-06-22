@@ -1,0 +1,56 @@
+# CI pipeline — unit/build checks only (no database required).
+# Integration tests (Testcontainers + Playwright) arrive in Phase 1.
+# AWS CDK deploy is a later milestone (Phase 2 / Phase 3).
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        # shared must compile to CJS before api and web can typecheck against it
+        run: pnpm --filter @perf-tracker/shared build
+
+      - name: Generate Prisma client
+        # generates the typed Prisma client from schema; requires no live database
+        run: pnpm --filter @perf-tracker/api prisma:generate
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck all packages
+        run: pnpm -r typecheck
+
+      - name: Run unit tests
+        run: pnpm -r --if-present test

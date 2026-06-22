@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-node/
+build/
+coverage/
+*.tsbuildinfo
+
+# Tool caches
+.turbo/
+.vite/
+
+# Local storage
+.storage/
+
+# Env files (real values — .env.example is committed)
+.env
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Prisma generated client
+apps/api/node_modules/.prisma/
+
+# Editor
+.idea/
+*.swp
+*.swo

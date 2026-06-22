@@ -1,0 +1,404 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  admin
+  user
+}
+
+enum AuthSource {
+  local
+  entra
+}
+
+enum RelationshipType {
+  mentor
+}
+
+enum MetricKey {
+  customer_satisfaction
+  public_speaking
+  deliverables
+  mentoring_activity
+  tech_community_events
+}
+
+enum GoalStatus {
+  draft
+  active
+  at_risk
+  done
+  dropped
+}
+
+enum Visibility {
+  public
+  restricted
+}
+
+enum CycleScope {
+  org_wide
+  individual
+}
+
+enum CycleStatus {
+  not_started
+  goals_set
+  self_assessment_open
+  self_submitted
+  mentor_assessment_open
+  mentor_submitted
+  calibration
+  meeting_scheduled
+  meeting_held
+  released_to_employee
+  acknowledged
+  closed
+}
+
+enum AuthorSide {
+  self
+  mentor
+}
+
+enum SubmissionStatus {
+  draft
+  submitted
+}
+
+enum QuestionKey {
+  overall_achievement
+  what_went_well
+  areas_to_improve
+  plan_next_year
+}
+
+enum FeedbackStatus {
+  pending
+  completed
+  declined
+}
+
+enum NotificationChannel {
+  in_app
+  email
+  teams
+}
+
+enum NotificationStatus {
+  unread
+  read
+}
+
+enum MeetingStatus {
+  scheduled
+  held
+  cancelled
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  entra_object_id String?    @unique
+  tenant_id       String?
+  upn             String?
+  email           String     @unique
+  displayName     String
+  role            Role
+  auth_source     AuthSource
+  passwordHash    String?
+  isActive        Boolean    @default(true)
+  manager_id      String?    @db.Uuid
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Self-relation: manager
+  manager  User?  @relation("UserManager", fields: [manager_id], references: [id])
+  reports  User[] @relation("UserManager")
+
+  // Mentor relationships
+  menteeRelationships  MentorRelationship[] @relation("MenteeRelationships")
+  mentorRelationships  MentorRelationship[] @relation("MentorRelationships")
+
+  // Goals owned by user
+  goals Goal[]
+
+  // Review cycles as mentee or mentor
+  cyclesAsMentee ReviewCycle[] @relation("CycleMentee")
+  cyclesAsMentor ReviewCycle[] @relation("CycleMentor")
+
+  // Submissions authored by user
+  reviewSubmissions ReviewSubmission[]
+
+  // Feedback
+  feedbackRequestsAsRequester FeedbackRequest[] @relation("FeedbackRequester")
+  feedbackRequestsAsTarget    FeedbackRequest[] @relation("FeedbackTarget")
+  feedbackResponses           FeedbackResponse[]
+
+  // Appreciation
+  appreciationsAuthored    Appreciation[]
+  appreciationRecipients   AppreciationRecipient[]
+  appreciationReactions    AppreciationReaction[]
+
+  // Notifications
+  notifications Notification[]
+
+  // Meetings organized
+  meetingsOrganized Meeting[]
+
+  // Audit log entries
+  auditLogs AuditLog[]
+}
+
+model MentorRelationship {
+  id            String           @id @default(uuid()) @db.Uuid
+  menteeId      String           @db.Uuid
+  mentorId      String           @db.Uuid
+  type          RelationshipType @default(mentor)
+  effectiveFrom DateTime         @db.Date
+  effectiveTo   DateTime?        @db.Date
+
+  mentee User @relation("MenteeRelationships", fields: [menteeId], references: [id])
+  mentor User @relation("MentorRelationships", fields: [mentorId], references: [id])
+
+  @@index([menteeId])
+}
+
+model MetricDefinition {
+  id          String    @id @default(uuid()) @db.Uuid
+  key         MetricKey @unique
+  label       String
+  description String
+  active      Boolean   @default(true)
+
+  goals         Goal[]
+  metricRatings MetricRating[]
+}
+
+model Goal {
+  id          String     @id @default(uuid()) @db.Uuid
+  ownerUserId String     @db.Uuid
+  metricId    String     @db.Uuid
+  title       String
+  description String
+  target      String?
+  cycleId     String?    @db.Uuid
+  status      GoalStatus @default(draft)
+  visibility  Visibility @default(restricted)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  owner  User             @relation(fields: [ownerUserId], references: [id])
+  metric MetricDefinition @relation(fields: [metricId], references: [id])
+  cycle  ReviewCycle?     @relation(fields: [cycleId], references: [id])
+
+  @@index([ownerUserId])
+}
+
+model ReviewCycle {
+  id           String      @id @default(uuid()) @db.Uuid
+  scope        CycleScope
+  periodLabel  String
+  menteeId     String      @db.Uuid
+  mentorId     String      @db.Uuid
+  status       CycleStatus @default(not_started)
+  goalsDueDate DateTime    @db.Date
+  selfDueDate  DateTime    @db.Date
+  mentorDueDate DateTime   @db.Date
+  meetingId    String?     @unique @db.Uuid
+  openedAt     DateTime?
+  closedAt     DateTime?
+
+  mentee User @relation("CycleMentee", fields: [menteeId], references: [id])
+  mentor User @relation("CycleMentor", fields: [mentorId], references: [id])
+
+  meeting     Meeting?          @relation(fields: [meetingId], references: [id])
+  submissions ReviewSubmission[]
+  goals       Goal[]
+
+  @@index([menteeId])
+  @@index([mentorId])
+  @@index([status])
+}
+
+model ReviewSubmission {
+  id            String           @id @default(uuid()) @db.Uuid
+  cycleId       String           @db.Uuid
+  authorUserId  String           @db.Uuid
+  authorSide    AuthorSide
+  status        SubmissionStatus @default(draft)
+  submittedAt   DateTime?
+  lockedAt      DateTime?
+
+  cycle      ReviewCycle      @relation(fields: [cycleId], references: [id])
+  author     User             @relation(fields: [authorUserId], references: [id])
+  answers    QuestionAnswer[]
+  ratings    MetricRating[]
+
+  @@unique([cycleId, authorSide])
+}
+
+model QuestionAnswer {
+  id           String      @id @default(uuid()) @db.Uuid
+  submissionId String      @db.Uuid
+  questionKey  QuestionKey
+  answerText   String
+
+  submission ReviewSubmission @relation(fields: [submissionId], references: [id])
+
+  @@unique([submissionId, questionKey])
+}
+
+model MetricRating {
+  id           String @id @default(uuid()) @db.Uuid
+  submissionId String @db.Uuid
+  metricId     String @db.Uuid
+  score        Int
+  comment      String?
+  scaleVersion String
+
+  submission ReviewSubmission @relation(fields: [submissionId], references: [id])
+  metric     MetricDefinition @relation(fields: [metricId], references: [id])
+
+  @@unique([submissionId, metricId])
+}
+
+model FeedbackRequest {
+  id              String         @id @default(uuid()) @db.Uuid
+  requesterUserId String         @db.Uuid
+  targetUserId    String         @db.Uuid
+  cycleId         String?        @db.Uuid
+  prompt          String
+  status          FeedbackStatus @default(pending)
+  dueDate         DateTime?
+  anonymity       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+
+  requester User               @relation("FeedbackRequester", fields: [requesterUserId], references: [id])
+  target    User               @relation("FeedbackTarget", fields: [targetUserId], references: [id])
+  responses FeedbackResponse[]
+}
+
+model FeedbackResponse {
+  id           String     @id @default(uuid()) @db.Uuid
+  requestId    String     @db.Uuid
+  authorUserId String     @db.Uuid
+  body         String
+  visibility   Visibility @default(restricted)
+  createdAt    DateTime   @default(now())
+
+  request FeedbackRequest @relation(fields: [requestId], references: [id])
+  author  User            @relation(fields: [authorUserId], references: [id])
+}
+
+model Appreciation {
+  id           String    @id @default(uuid()) @db.Uuid
+  authorUserId String    @db.Uuid
+  message      String
+  metricTag    MetricKey?
+  visibility   Visibility @default(public)
+  createdAt    DateTime   @default(now())
+
+  author     User                    @relation(fields: [authorUserId], references: [id])
+  recipients AppreciationRecipient[]
+  reactions  AppreciationReaction[]
+}
+
+model AppreciationRecipient {
+  appreciationId   String @db.Uuid
+  recipientUserId  String @db.Uuid
+
+  appreciation Appreciation @relation(fields: [appreciationId], references: [id])
+  recipient    User         @relation(fields: [recipientUserId], references: [id])
+
+  @@id([appreciationId, recipientUserId])
+}
+
+model AppreciationReaction {
+  id             String @id @default(uuid()) @db.Uuid
+  appreciationId String @db.Uuid
+  userId         String @db.Uuid
+  type           String
+
+  appreciation Appreciation @relation(fields: [appreciationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([appreciationId, userId, type])
+}
+
+model Notification {
+  id              String              @id @default(uuid()) @db.Uuid
+  recipientUserId String              @db.Uuid
+  type            String
+  channel         NotificationChannel
+  entityRef       Json?
+  status          NotificationStatus  @default(unread)
+  digestBatchId   String?             @db.Uuid
+  createdAt       DateTime            @default(now())
+  readAt          DateTime?
+
+  recipient User @relation(fields: [recipientUserId], references: [id])
+
+  @@index([recipientUserId, status])
+}
+
+model Meeting {
+  id               String        @id @default(uuid()) @db.Uuid
+  organizerUserId  String        @db.Uuid
+  scheduledStart   DateTime
+  scheduledEnd     DateTime
+  teamsJoinUrl     String?
+  onlineMeetingId  String?
+  status           MeetingStatus @default(scheduled)
+
+  organizer User         @relation(fields: [organizerUserId], references: [id])
+  // Back-relation: ReviewCycle holds the meetingId FK pointing here
+  cycle     ReviewCycle?
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String   @db.Uuid
+  action      String
+  entityType  String
+  entityId    String
+  timestamp   DateTime @default(now())
+  metadata    Json?
+
+  actor User @relation(fields: [actorUserId], references: [id])
+}
+
+model DirectorySyncState {
+  id         String   @id @default(uuid()) @db.Uuid
+  deltaLink  String
+  lastSyncAt DateTime @default(now())
+}
+
+model RatingScale {
+  id          String @id @default(uuid()) @db.Uuid
+  version     String @unique
+  definitions Json
+}
+
+model CycleConfig {
+  id              String @id @default(uuid()) @db.Uuid
+  key             String @unique
+  value           Json
+  description     String?
+}

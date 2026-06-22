@@ -1,0 +1,31 @@
+{
+  "name": "performance-tracker",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:shared": "pnpm --filter @perf-tracker/shared build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:api": "pnpm --filter @perf-tracker/api start:dev",
+    "dev:web": "pnpm --filter @perf-tracker/web dev",
+    "db:generate": "pnpm --filter @perf-tracker/api prisma:generate",
+    "db:migrate": "pnpm --filter @perf-tracker/api prisma:migrate",
+    "db:seed": "pnpm --filter @perf-tracker/api prisma:seed"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react": "^7.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}
