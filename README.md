@@ -27,31 +27,36 @@ Docker Compose dev stack.
 - **Node.js ≥ 20** (developed on 24)
 - **pnpm 9** — `npm install -g pnpm@9` (or `corepack enable pnpm`)
 - **Docker Desktop** running (provides Postgres + Mailpit)
+- **A local `.env`** — copy it from the template: `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`). `.env` is gitignored and holds the DB URL, session secret, and seed admin credentials; the `scripts/dev.*` launcher auto-creates it if missing.
 
 ## Quickstart
 
 Run everything **from the repository root**.
 
 ```bash
-# 1. Install all workspace dependencies
+# 1. Create your local .env from the template (gitignored — DB URL, session secret, admin creds)
+#    bash:  cp .env.example .env        PowerShell:  Copy-Item .env.example .env
+cp .env.example .env
+
+# 2. Install all workspace dependencies
 pnpm install
 
-# 2. Build the shared package (the API and web import it)
+# 3. Build the shared package (the API and web import it)
 pnpm build:shared
 
-# 3. Start the backing services (Postgres + Mailpit). Wait until healthy.
+# 4. Start the backing services (Postgres + Mailpit). Wait until healthy.
 docker compose up -d
 #    Optional S3-compatible storage (not required locally):
 #    docker compose --profile minio up -d
 
-# 4. Apply database migrations + seed (5 metrics, rating scale v1, admin user)
+# 5. Apply database migrations + seed (5 metrics, rating scale v1, admin user)
 pnpm db:migrate     # applies migrations and runs the seed
 pnpm db:seed        # (optional) re-run the seed anytime — it is idempotent
 
-# 5. Start the API (terminal 1) → http://localhost:3000/api
+# 6. Start the API (terminal 1) → http://localhost:3000/api
 pnpm dev:api
 
-# 6. Start the web app (terminal 2) → http://localhost:5173
+# 7. Start the web app (terminal 2) → http://localhost:5173
 pnpm dev:web
 ```
 

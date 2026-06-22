@@ -16,6 +16,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Ensure a local .env exists (gitignored — created from the template on first run)
+if [ ! -f .env ]; then
+  echo "==> .env not found — creating it from .env.example"
+  cp .env.example .env
+fi
+
 MIGRATE=false
 MINIO=false
 for arg in "$@"; do

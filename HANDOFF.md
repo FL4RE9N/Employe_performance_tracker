@@ -25,6 +25,10 @@ read `plan/` (the approved plan, files 00–08) and `README.md` (run instruction
 
 > Prereqs: **Docker Desktop running**, **Node ≥ 20**, **pnpm 9**. Run everything from the repo root:
 > `C:\Users\RahulVenkatSaravanan\Desktop\performance_tracker`
+>
+> **First run / fresh clone:** create your local env file → `Copy-Item .env.example .env`
+> (bash: `cp .env.example .env`). `.env` is gitignored (holds DB URL, session secret, admin creds);
+> the `scripts/dev.*` launcher creates it automatically if missing.
 
 ### Easiest — the launcher script
 ```powershell
@@ -40,6 +44,7 @@ read `plan/` (the approved plan, files 00–08) and `README.md` (run instruction
 
 ### Manual (equivalent steps)
 ```powershell
+Copy-Item .env.example .env  # first time only: create your local .env (gitignored)
 pnpm install                 # first time only
 pnpm build:shared            # API imports the built shared package
 docker compose up -d         # Postgres + Mailpit (add: --profile minio for MinIO)

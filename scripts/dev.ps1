@@ -21,6 +21,12 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
+# Ensure a local .env exists (gitignored — created from the template on first run)
+if (-not (Test-Path (Join-Path $root '.env'))) {
+  Write-Host '==> .env not found — creating it from .env.example' -ForegroundColor Yellow
+  Copy-Item (Join-Path $root '.env.example') (Join-Path $root '.env')
+}
+
 # Pick a PowerShell host for the child windows (PowerShell 7 if present, else Windows PowerShell)
 $psHost = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
 
