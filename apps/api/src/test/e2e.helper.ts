@@ -19,6 +19,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { signSession, COOKIE_NAME } from '../auth/session/session.cookie';
+import { CSRF_COOKIE } from '../auth/csrf/csrf.middleware';
 
 export const TEST_SESSION_SECRET =
   'test-session-secret-do-not-use-in-prod-0123456789';
@@ -65,4 +66,18 @@ export async function bootstrapTestApp(
 export function sessionCookie(userId: string, role = 'user'): string {
   const token = signSession({ sub: userId, role }, TEST_SESSION_SECRET);
   return `${COOKIE_NAME}=${token}`;
+}
+
+/** Fixed CSRF token used by mutation e2e tests (double-submit just needs cookie===header). */
+export const TEST_CSRF = 'test-csrf-token';
+
+/** Header object carrying the matching CSRF token for mutating requests. */
+export const csrfHeader: Record<string, string> = { 'x-csrf-token': TEST_CSRF };
+
+/**
+ * Cookie header for a MUTATING request: a valid session AND a matching pt_csrf
+ * cookie, so the CsrfMiddleware double-submit check passes. Pair with `csrfHeader`.
+ */
+export function authMutationCookie(userId: string, role = 'user'): string {
+  return `${sessionCookie(userId, role)}; ${CSRF_COOKIE}=${TEST_CSRF}`;
 }

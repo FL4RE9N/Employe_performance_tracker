@@ -4,6 +4,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import AppShell from './components/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import GoalsPage from './pages/GoalsPage';
 
 const router = createBrowserRouter([
   {
@@ -21,7 +22,7 @@ const router = createBrowserRouter([
             element: <DashboardPage />,
           },
           // Placeholder routes — pages wired in Phase 1
-          { path: 'goals', element: <PlaceholderPage title="Goals" /> },
+          { path: 'goals', element: <GoalsPage /> },
           { path: 'reviews', element: <PlaceholderPage title="Reviews" /> },
           { path: 'feedback', element: <PlaceholderPage title="Feedback" /> },
           {

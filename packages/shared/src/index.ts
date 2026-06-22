@@ -67,3 +67,6 @@ export type {
   DirectoryUserDto,
   PairingDto,
 } from './dto/user';
+
+export { createGoalSchema, updateGoalSchema, GoalScopeSchema } from './dto/goal';
+export type { CreateGoalInput, UpdateGoalInput, GoalScope, GoalDto } from './dto/goal';

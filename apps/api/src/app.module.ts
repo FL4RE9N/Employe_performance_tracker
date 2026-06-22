@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module';
 // AuthModule is built by the api-auth agent; imported here per the module contract.
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
+import { GoalsModule } from './goals/goals.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AdminModule } from './admin/admin.module';
     ProvidersModule,
     AuthModule,
     AdminModule,
+    GoalsModule,
     JobsModule,
     HealthModule,
   ],
