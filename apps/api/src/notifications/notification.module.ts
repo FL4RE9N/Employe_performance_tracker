@@ -1,13 +1,18 @@
 import { Module } from '@nestjs/common';
+import { ProvidersModule } from '../providers/providers.module';
 import { NotificationService } from './notification.service';
+import { NotificationBus } from './notification-bus';
+import { NotificationsController } from './notifications.controller';
 
 /**
- * NotificationModule — exports the NotificationService write primitive consumed
- * by the cycle engine (and, in later slices, feedback/appreciation). Slice 4 adds
- * the SSE controller + bus + email delivery here.
+ * NotificationModule — the in-app SSE feed + email delivery + per-user prefs +
+ * digest. ProvidersModule (global) is imported explicitly so MAILER_SERVICE is
+ * available when this module is booted in isolation (tests).
  */
 @Module({
-  providers: [NotificationService],
+  imports: [ProvidersModule],
+  providers: [NotificationService, NotificationBus],
+  controllers: [NotificationsController],
   exports: [NotificationService],
 })
 export class NotificationModule {}

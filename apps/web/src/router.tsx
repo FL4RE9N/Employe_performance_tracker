@@ -7,6 +7,7 @@ import AdminUsersPage from './pages/AdminUsersPage';
 import GoalsPage from './pages/GoalsPage';
 import ReviewsPage from './pages/ReviewsPage';
 import ReviewCyclePage from './pages/ReviewCyclePage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const router = createBrowserRouter([
   {
@@ -38,7 +39,7 @@ const router = createBrowserRouter([
           },
           {
             path: 'notifications',
-            element: <PlaceholderPage title="Notifications" />,
+            element: <NotificationsPage />,
           },
           { path: 'admin', element: <AdminUsersPage /> },
         ],

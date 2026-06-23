@@ -27,6 +27,8 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useSession } from '../auth/useSession';
 import { useLogout } from '../auth/useSession';
+import NotificationBell from '../notifications/NotificationBell';
+import { useNotificationStream } from '../notifications/useNotificationStream';
 
 const DRAWER_WIDTH = 240;
 
@@ -61,6 +63,9 @@ export default function AppShell() {
   const { data: user } = useSession();
   const logout = useLogout();
   const location = useLocation();
+
+  // Mount the SSE stream once for the entire authenticated session
+  useNotificationStream();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -140,6 +145,8 @@ export default function AppShell() {
             Performance Tracker
           </Typography>
           <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
+
+          {user && <NotificationBell />}
 
           {user && (
             <Tooltip title={user.displayName}>

@@ -116,5 +116,21 @@ export {
 } from './state/cycle-transitions';
 export type { CycleActorKind, TransitionDef } from './state/cycle-transitions';
 
-export { NOTIFICATION_TYPE_VALUES, NotificationTypeSchema } from './notifications';
-export type { NotificationType, EntityRef } from './notifications';
+export {
+  NOTIFICATION_TYPE_VALUES,
+  NotificationTypeSchema,
+  REMINDER_THRESHOLD_VALUES,
+  ReminderThresholdSchema,
+  DIGEST_FREQUENCY_VALUES,
+  DigestFrequencySchema,
+  updatePreferenceSchema,
+} from './notifications';
+export type {
+  NotificationType,
+  ReminderThreshold,
+  DigestFrequency,
+  UpdatePreferenceInput,
+  NotificationPreferenceDto,
+  EntityRef,
+  NotificationDto,
+} from './notifications';

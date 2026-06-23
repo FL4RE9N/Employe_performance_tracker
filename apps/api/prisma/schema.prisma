@@ -109,6 +109,12 @@ enum MeetingStatus {
   cancelled
 }
 
+enum DigestFrequency {
+  immediate
+  daily
+  off
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -157,7 +163,8 @@ model User {
   appreciationReactions    AppreciationReaction[]
 
   // Notifications
-  notifications Notification[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
 
   // Meetings organized
   meetingsOrganized Meeting[]
@@ -358,12 +365,24 @@ model Notification {
   entityRef       Json?
   status          NotificationStatus  @default(unread)
   digestBatchId   String?             @db.Uuid
+  // Deterministic dedupe key for reminder rows (null for event-driven rows).
+  // Postgres treats NULLs as distinct, so only reminder rows are constrained.
+  reminderKey     String?             @unique
   createdAt       DateTime            @default(now())
   readAt          DateTime?
 
   recipient User @relation(fields: [recipientUserId], references: [id])
 
   @@index([recipientUserId, status])
+}
+
+model NotificationPreference {
+  userId          String          @id @db.Uuid
+  emailEnabled    Boolean         @default(true)
+  digestFrequency DigestFrequency @default(daily)
+  updatedAt       DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Meeting {
