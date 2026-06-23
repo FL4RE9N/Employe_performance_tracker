@@ -116,6 +116,14 @@ export {
 } from './state/cycle-transitions';
 export type { CycleActorKind, TransitionDef } from './state/cycle-transitions';
 
+export type {
+  StatusCountDto,
+  SideDistributionDto,
+  MetricDistributionDto,
+  DashboardDto,
+} from './dto/dashboard';
+export type { MeetingListItemDto } from './dto/meeting';
+
 export { createAppreciationSchema, reactionSchema } from './dto/appreciation';
 export type {
   CreateAppreciationInput,

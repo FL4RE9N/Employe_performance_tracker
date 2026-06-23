@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -44,6 +45,7 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import EditIcon from '@mui/icons-material/Edit';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 
@@ -450,13 +452,25 @@ export default function AdminUsersPage() {
   return (
     <Box>
       {/* Page header */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Admin — Users &amp; Pairings
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage user accounts, roles, and mentor-mentee pairings.
-        </Typography>
+      <Box mb={4} display="flex" alignItems="flex-start" gap={2} flexWrap="wrap">
+        <Box flex={1}>
+          <Typography variant="h4" fontWeight={700} gutterBottom>
+            Admin — Users &amp; Pairings
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage user accounts, roles, and mentor-mentee pairings.
+          </Typography>
+        </Box>
+        <Button
+          component={RouterLink}
+          to="/admin/dashboard"
+          startIcon={<BarChartIcon />}
+          variant="outlined"
+          size="small"
+          sx={{ mt: 0.5, flexShrink: 0 }}
+        >
+          View dashboard
+        </Button>
       </Box>
 
       {/* ---- Users section ---- */}

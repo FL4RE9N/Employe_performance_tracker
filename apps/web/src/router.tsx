@@ -4,12 +4,14 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import AppShell from './components/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import GoalsPage from './pages/GoalsPage';
 import ReviewsPage from './pages/ReviewsPage';
 import ReviewCyclePage from './pages/ReviewCyclePage';
 import NotificationsPage from './pages/NotificationsPage';
 import AppreciationPage from './pages/AppreciationPage';
 import FeedbackPage from './pages/FeedbackPage';
+import OneOnOnesPage from './pages/OneOnOnesPage';
 
 const router = createBrowserRouter([
   {
@@ -37,13 +39,14 @@ const router = createBrowserRouter([
           },
           {
             path: 'one-on-ones',
-            element: <PlaceholderPage title="1-on-1s" />,
+            element: <OneOnOnesPage />,
           },
           {
             path: 'notifications',
             element: <NotificationsPage />,
           },
           { path: 'admin', element: <AdminUsersPage /> },
+          { path: 'admin/dashboard', element: <AdminDashboardPage /> },
         ],
       },
     ],
@@ -53,17 +56,5 @@ const router = createBrowserRouter([
     element: <Navigate to="/" replace />,
   },
 ]);
-
-/** Minimal placeholder used until Phase 1 wires real pages */
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div style={{ padding: '2rem' }}>
-      <h2>{title}</h2>
-      <p style={{ color: '#64748b' }}>
-        This section will be built in Phase 1.
-      </p>
-    </div>
-  );
-}
 
 export default router;

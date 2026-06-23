@@ -17,6 +17,8 @@ import { SubmissionsModule } from './submissions/submissions.module';
 import { NotificationModule } from './notifications/notification.module';
 import { AppreciationModule } from './appreciation/appreciation.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { MeetingsModule } from './meetings/meetings.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { FeedbackModule } from './feedback/feedback.module';
     NotificationModule,
     AppreciationModule,
     FeedbackModule,
+    MeetingsModule,
+    DashboardModule,
     JobsModule,
     HealthModule,
   ],
