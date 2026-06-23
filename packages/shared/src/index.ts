@@ -116,6 +116,28 @@ export {
 } from './state/cycle-transitions';
 export type { CycleActorKind, TransitionDef } from './state/cycle-transitions';
 
+export { createAppreciationSchema, reactionSchema } from './dto/appreciation';
+export type {
+  CreateAppreciationInput,
+  ReactionInput,
+  AppreciationDto,
+  AppreciationRecipientDto,
+  AppreciationReactionDto,
+} from './dto/appreciation';
+
+export {
+  createFeedbackRequestSchema,
+  submitFeedbackSchema,
+  FeedbackBoxSchema,
+} from './dto/feedback';
+export type {
+  CreateFeedbackRequestInput,
+  SubmitFeedbackInput,
+  FeedbackBox,
+  FeedbackRequestDto,
+  FeedbackResponseDto,
+} from './dto/feedback';
+
 export {
   NOTIFICATION_TYPE_VALUES,
   NotificationTypeSchema,

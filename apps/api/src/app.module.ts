@@ -15,6 +15,8 @@ import { GoalsModule } from './goals/goals.module';
 import { CyclesModule } from './cycles/cycles.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { NotificationModule } from './notifications/notification.module';
+import { AppreciationModule } from './appreciation/appreciation.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { NotificationModule } from './notifications/notification.module';
     CyclesModule,
     SubmissionsModule,
     NotificationModule,
+    AppreciationModule,
+    FeedbackModule,
     JobsModule,
     HealthModule,
   ],
