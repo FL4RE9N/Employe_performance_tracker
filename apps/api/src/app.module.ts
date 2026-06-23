@@ -12,6 +12,9 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { GoalsModule } from './goals/goals.module';
+import { CyclesModule } from './cycles/cycles.module';
+import { SubmissionsModule } from './submissions/submissions.module';
+import { NotificationModule } from './notifications/notification.module';
 
 @Module({
   imports: [
@@ -32,6 +35,9 @@ import { GoalsModule } from './goals/goals.module';
     AuthModule,
     AdminModule,
     GoalsModule,
+    CyclesModule,
+    SubmissionsModule,
+    NotificationModule,
     JobsModule,
     HealthModule,
   ],

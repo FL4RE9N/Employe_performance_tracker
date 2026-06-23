@@ -222,8 +222,16 @@ model ReviewCycle {
   selfDueDate  DateTime    @db.Date
   mentorDueDate DateTime   @db.Date
   meetingId    String?     @unique @db.Uuid
+  // Anchor for mentor "cycle ending" escalation reminders; cycle-launch defaults
+  // it to mentorDueDate. Reminder math uses cycleEndDate ?? mentorDueDate.
+  cycleEndDate DateTime?   @db.Date
   openedAt     DateTime?
   closedAt     DateTime?
+  // Set when the mentor/admin releases the review to the employee.
+  releasedAt             DateTime?
+  // Set when the employee acknowledges (acknowledgement != agreement).
+  acknowledgedAt         DateTime?
+  acknowledgementComment String?
 
   mentee User @relation("CycleMentee", fields: [menteeId], references: [id])
   mentor User @relation("CycleMentor", fields: [mentorId], references: [id])

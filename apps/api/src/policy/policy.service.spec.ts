@@ -115,4 +115,57 @@ describe('PolicyService', () => {
       expect(() => policy.assertCanEditGoal(asUser(OTHER), goal)).toThrow(ForbiddenException);
     });
   });
+
+  // --- Review-cycle visibility ------------------------------------------------
+
+  function cycle(status: string) {
+    return { menteeId: MENTEE, mentorId: MENTOR, status: status as never };
+  }
+
+  describe('resolveCycleActorKind — precedence', () => {
+    it('classifies the mentee as mentee (even if also an admin)', () => {
+      expect(policy.resolveCycleActorKind(asUser(MENTEE), cycle('not_started'))).toBe('mentee');
+      expect(policy.resolveCycleActorKind(asUser(MENTEE, 'admin'), cycle('not_started'))).toBe('mentee');
+    });
+    it('classifies the snapshot mentor as mentor', () => {
+      expect(policy.resolveCycleActorKind(asUser(MENTOR), cycle('not_started'))).toBe('mentor');
+    });
+    it('classifies an unrelated admin as admin', () => {
+      expect(policy.resolveCycleActorKind(asUser('admin-id', 'admin'), cycle('not_started'))).toBe('admin');
+    });
+    it('returns null for an unrelated non-admin', () => {
+      expect(policy.resolveCycleActorKind(asUser(OTHER), cycle('not_started'))).toBeNull();
+    });
+  });
+
+  describe('canViewSubmission — invariants #2 & #3', () => {
+    it('self: mentee always; mentor only after BOTH submit', () => {
+      expect(policy.canViewSubmission(asUser(MENTEE), cycle('self_submitted'), 'self', { bothSubmitted: false })).toBe(true);
+      expect(policy.canViewSubmission(asUser(MENTOR), cycle('self_submitted'), 'self', { bothSubmitted: false })).toBe(false);
+      expect(policy.canViewSubmission(asUser(MENTOR), cycle('mentor_submitted'), 'self', { bothSubmitted: true })).toBe(true);
+    });
+    it('mentor: mentor always; mentee only at/after release', () => {
+      expect(policy.canViewSubmission(asUser(MENTOR), cycle('mentor_submitted'), 'mentor', { bothSubmitted: true })).toBe(true);
+      expect(policy.canViewSubmission(asUser(MENTEE), cycle('mentor_submitted'), 'mentor', { bothSubmitted: true })).toBe(false);
+      expect(policy.canViewSubmission(asUser(MENTEE), cycle('released_to_employee'), 'mentor', { bothSubmitted: true })).toBe(true);
+    });
+    it('admin can read either side; unrelated user can read neither', () => {
+      expect(policy.canViewSubmission(asUser('admin-id', 'admin'), cycle('self_submitted'), 'mentor', { bothSubmitted: false })).toBe(true);
+      expect(policy.canViewSubmission(asUser(OTHER), cycle('released_to_employee'), 'self', { bothSubmitted: true })).toBe(false);
+      expect(policy.canViewSubmission(asUser(OTHER), cycle('released_to_employee'), 'mentor', { bothSubmitted: true })).toBe(false);
+    });
+  });
+
+  describe('canViewReleasedReview', () => {
+    it('is hidden from everyone before release', () => {
+      expect(policy.canViewReleasedReview(asUser(MENTEE), cycle('meeting_held'))).toBe(false);
+      expect(policy.canViewReleasedReview(asUser(MENTOR), cycle('meeting_held'))).toBe(false);
+    });
+    it('is visible to mentee/mentor/admin at/after release, not to others', () => {
+      expect(policy.canViewReleasedReview(asUser(MENTEE), cycle('released_to_employee'))).toBe(true);
+      expect(policy.canViewReleasedReview(asUser(MENTOR), cycle('acknowledged'))).toBe(true);
+      expect(policy.canViewReleasedReview(asUser('admin-id', 'admin'), cycle('released_to_employee'))).toBe(true);
+      expect(policy.canViewReleasedReview(asUser(OTHER), cycle('released_to_employee'))).toBe(false);
+    });
+  });
 });

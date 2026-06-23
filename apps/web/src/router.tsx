@@ -5,6 +5,8 @@ import AppShell from './components/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import GoalsPage from './pages/GoalsPage';
+import ReviewsPage from './pages/ReviewsPage';
+import ReviewCyclePage from './pages/ReviewCyclePage';
 
 const router = createBrowserRouter([
   {
@@ -23,7 +25,8 @@ const router = createBrowserRouter([
           },
           // Placeholder routes — pages wired in Phase 1
           { path: 'goals', element: <GoalsPage /> },
-          { path: 'reviews', element: <PlaceholderPage title="Reviews" /> },
+          { path: 'reviews', element: <ReviewsPage /> },
+          { path: 'reviews/:id', element: <ReviewCyclePage /> },
           { path: 'feedback', element: <PlaceholderPage title="Feedback" /> },
           {
             path: 'appreciation',

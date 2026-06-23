@@ -1,6 +1,19 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { SessionUser } from '@perf-tracker/shared';
+import { statusAtOrAfter } from '@perf-tracker/shared';
+import type {
+  SessionUser,
+  CycleStatus,
+  AuthorSide,
+  CycleActorKind,
+} from '@perf-tracker/shared';
+
+/** Minimal cycle shape the visibility checks need (mentorId is the snapshot per plan/04). */
+export interface CycleRef {
+  menteeId: string;
+  mentorId: string;
+  status: CycleStatus;
+}
 
 /**
  * PolicyService — the single, reusable server-side authorization layer.
@@ -86,5 +99,65 @@ export class PolicyService {
     if (!this.canEditGoal(actor, goal)) {
       throw new ForbiddenException('Only the goal owner may modify it');
     }
+  }
+
+  // --- Review-cycle visibility & actor classification (plan/05) ---------------
+
+  /**
+   * Classify the actor's relationship to THIS cycle, most-specific first:
+   * the mentee acts as 'mentee', the snapshot mentor acts as 'mentor', any other
+   * admin acts as 'admin'. Returns null when the actor has no relationship.
+   * 'system' is never produced here (auto edges are driven internally).
+   *
+   * Precedence matters: an admin who is also the cycle's mentee/mentor must act in
+   * that specific role (e.g. submit their own self-assessment), not as a generic admin.
+   */
+  resolveCycleActorKind(actor: SessionUser, cycle: CycleRef): CycleActorKind | null {
+    if (actor.id === cycle.menteeId) return 'mentee';
+    if (actor.id === cycle.mentorId) return 'mentor';
+    if (actor.role === 'admin') return 'admin';
+    return null;
+  }
+
+  /** Cycle metadata is visible to its mentee, its (snapshot) mentor, and admins. */
+  canViewCycle(actor: SessionUser, cycle: CycleRef): boolean {
+    return this.resolveCycleActorKind(actor, cycle) !== null;
+  }
+
+  assertCanViewCycle(actor: SessionUser, cycle: CycleRef): void {
+    if (!this.canViewCycle(actor, cycle)) {
+      throw new ForbiddenException('Not allowed to view this cycle');
+    }
+  }
+
+  /**
+   * Can the actor read one SIDE's submission? (Invariants #2 & #3.)
+   * - self side: the mentee always; the mentor only once BOTH have submitted.
+   * - mentor side: the mentor always; the mentee only once the cycle is released.
+   * Admins may read either side. Everyone else: no.
+   */
+  canViewSubmission(
+    actor: SessionUser,
+    cycle: CycleRef,
+    side: AuthorSide,
+    opts: { bothSubmitted: boolean },
+  ): boolean {
+    if (actor.role === 'admin') return true;
+    const isMentee = actor.id === cycle.menteeId;
+    const isMentor = actor.id === cycle.mentorId;
+    if (side === 'self') {
+      return isMentee || (isMentor && opts.bothSubmitted);
+    }
+    // side === 'mentor'
+    return (
+      isMentor ||
+      (isMentee && statusAtOrAfter(cycle.status, 'released_to_employee'))
+    );
+  }
+
+  /** The released-review bundle is visible to mentee/mentor/admin only at/after release. */
+  canViewReleasedReview(actor: SessionUser, cycle: CycleRef): boolean {
+    if (!statusAtOrAfter(cycle.status, 'released_to_employee')) return false;
+    return this.canViewCycle(actor, cycle);
   }
 }
