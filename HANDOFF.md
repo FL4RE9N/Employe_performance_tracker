@@ -229,6 +229,16 @@ Per `plan/06-roadmap.md`: Entra ID SSO (MSAL in the SPA, API validates Entra tok
 app-roles → server-side roles. The data model is already Entra-ready (nullable `entra_object_id` /
 `tenant_id` / `auth_source`); Phase-1 local accounts must keep working.
 
+### ⛔ Phase 2 prerequisites (these GATE the work — gather before starting)
+Phase 2 cannot be built/verified without a real tenant. Bring:
+1. An **Entra (Azure AD) tenant** with admin to create + admin-consent **3 app registrations**:
+   SPA (auth-code + PKCE), API (`access_as_user`, v2 tokens), sync worker (app-only, **certificate**).
+2. The resulting **tenant ID + client IDs**, the SPA **redirect URIs**, the **app roles** (`Admin`/`User`),
+   and the sync worker **certificate** (private key → a secret store).
+3. Two decisions (`plan/07`): **single- vs multi-tenant** (rec: single) and the **verified sending domain**.
+Until these exist, SSO code is unverifiable — keep building only behind the pluggable `AUTH_STRATEGY`
+seam and gate the cutover on a live tenant.
+
 ### Suggested first steps for the next session
 1. `git pull`, then `pnpm install`.
 2. Start Docker Desktop, then `.\scripts\dev.ps1 -Migrate`; confirm admin login at http://localhost:5173.
