@@ -1,6 +1,6 @@
 # Performance Tracker — Session Handoff
 
-_Last updated: 2026-06-22 • Phase 0 (local-first foundation) is **complete and verified end-to-end**._
+_Last updated: 2026-06-24 • Phase 0 **and Phase 1 (MVP)** are **complete and verified end-to-end**._
 
 This doc lets a fresh session (or a new developer) pick up immediately. For full product context
 read `plan/` (the approved plan, files 00–08) and `README.md` (run instructions).
@@ -16,8 +16,15 @@ read `plan/` (the approved plan, files 00–08) and `README.md` (run instruction
 - **Committed & pushed:** the Phase 0 baseline is committed on `main` and pushed to
   **`origin`** → https://github.com/FL4RE9N/Employe_performance_tracker.git
   (clone: `git clone https://github.com/FL4RE9N/Employe_performance_tracker.git`).
+- **Phase 1 (MVP) is done:** admin users/roles/pairings, Goals, the **review-cycle state machine
+  with lock-before-reveal**, symmetric review forms + comparison + release/acknowledge, notifications
+  (live **SSE** + email via Mailpit) + the **reminder sweep**, appreciation wall, feedback requests,
+  1-on-1 meetings, and the admin rating-distribution dashboard. **203 unit/integration tests pass**.
+  A committed, re-runnable real-DB smoke (`scripts/integration-smoke.ps1`, run against the live stack)
+  drives the full cycle and reports **29/29** invariant checks passing with emails delivered to Mailpit;
+  the authenticated SPA was also confirmed in a real browser (zero console errors).
 - **No AWS/CDK** — cloud concerns sit behind provider interfaces for a later cutover.
-- Next milestone: **Phase 1 (MVP)** — see `plan/06-roadmap.md`.
+- Next milestone: **Phase 2 (Microsoft Entra ID SSO + directory sync)** — see `plan/06-roadmap.md`.
 
 ---
 
@@ -186,18 +193,46 @@ The build agents produced code that needed 6 fixes to run; all are done:
 
 ---
 
-## 🔜 What's next — Phase 1 (MVP)
+## ✅ Phase 1 (MVP) — what shipped
 
-Per `plan/06-roadmap.md`: admin user/pairing management, Goals CRUD, Appreciation wall, Feedback
-requests, the **review-cycle state machine** (lock-before-reveal), review forms, meetings (manual
-Teams link), notifications (SSE + email via the existing `MailerService` → Mailpit), and the daily
-reminder sweep (`ReminderService.runSweep()` is stubbed in `apps/api/src/jobs/`). Critical-invariant
-tests: lock-before-reveal, reminder math, server-side visibility.
+**API modules** (`apps/api/src/`): `admin` (users/roles + `MentorRelationship` pairings + `directory`),
+`policy` (the reusable **server-side visibility** layer — mentor-ness derived from time-bounded edges,
+no "mentor" role), `goals`, `cycles` (the **state-machine engine**: one `transition()` choke-point in a
+single transaction, auto-chaining, AuditLog), `submissions` (save-draft + submit/**lock**, comparison
+with reveal gating), `notifications` (RxJS SSE bus + `@Sse` stream + email routing/digest/prefs),
+`appreciation`, `feedback`, `meetings`, `dashboard`. `jobs/reminder.service` rewritten (civil-date,
+DST-safe `reminder.math` + idempotent sweep). Minimal NotificationService primitive emits the plan/05 events.
+
+**Critical invariants (TDD, server-enforced):** lock-before-reveal immutability; comparison refused
+until both submit; mentor ratings hidden from the employee until release; reminder-timing math; RBAC.
+Proven by unit + **supertest** HTTP authz e2e (reusable harness at `apps/api/src/test/e2e.helper.ts`)
+and **`scripts/integration-smoke.ps1`** — a re-runnable real-DB check that drives the full cycle (set
+goals → both assess → reveal → schedule → release → acknowledge → close) against the live stack and
+asserts every invariant (prints `29 passed, 0 failed`).
+
+**Additive migrations:** `add_cycle_release_ack_fields` (ReviewCycle: `cycleEndDate`, `releasedAt`,
+`acknowledgedAt`, `acknowledgementComment`); `add_notification_prefs_and_reminder_dedupe`
+(`Notification.reminderKey` unique, `NotificationPreference`, `DigestFrequency`).
+
+**Test tooling note:** `apps/api` vitest uses **`unplugin-swc`** so NestJS decorator metadata is emitted
+for the DI-backed e2e tests (esbuild strips it). Don't remove it or the authz e2e tests break.
+
+> ⚠️ **Environment note:** Docker Desktop on this machine intermittently stops its engine; if the API
+> logs `P1001 Can't reach database server`, (re)start Docker Desktop, `docker compose up -d`, then
+> restart `pnpm dev:api` (Prisma needs a fresh connection). The 29/29 integration run was captured
+> during a healthy window.
+
+## 🔜 What's next — Phase 2 (Microsoft identity)
+
+Per `plan/06-roadmap.md`: Entra ID SSO (MSAL in the SPA, API validates Entra tokens, mint the same
+`pt_session` cookie via the pluggable `AUTH_STRATEGY`), directory sync (Graph `users/delta`), and
+app-roles → server-side roles. The data model is already Entra-ready (nullable `entra_object_id` /
+`tenant_id` / `auth_source`); Phase-1 local accounts must keep working.
 
 ### Suggested first steps for the next session
-1. `git clone https://github.com/FL4RE9N/Employe_performance_tracker.git` (or `git pull`), then `pnpm install`.
-2. Start the stack (above) and confirm login still works.
-3. Read `plan/05-features-and-flows.md` (state machine + visibility matrix) before building Phase 1.
+1. `git pull`, then `pnpm install`.
+2. Start Docker Desktop, then `.\scripts\dev.ps1 -Migrate`; confirm admin login at http://localhost:5173.
+3. Read `plan/06-roadmap.md` (Phase 2 tasks) and the Microsoft-integration gotchas in `plan/07-open-questions-and-risks.md`.
 
 ---
 

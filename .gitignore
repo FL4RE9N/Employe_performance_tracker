@@ -36,3 +36,7 @@ apps/api/node_modules/.prisma/
 .idea/
 *.swp
 *.swo
+
+# Playwright MCP scratch (browser smoke screenshots/snapshots)
+.playwright-mcp/
+phase1-dashboard.png
