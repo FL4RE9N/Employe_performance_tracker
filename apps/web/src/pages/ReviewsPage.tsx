@@ -43,6 +43,7 @@ import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import { useTheme } from '@mui/material/styles';
 
 import { useSession } from '../auth/useSession';
 import {
@@ -51,6 +52,7 @@ import {
   useLaunchOrgWide,
   useDirectory,
 } from '../reviews/useReviews';
+import { TOKENS } from '../theme';
 
 // ---- Helpers -----------------------------------------------------------------
 
@@ -259,7 +261,7 @@ function NewCycleDialog({ open, onClose, onSuccess }: NewCycleDialogProps) {
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -385,7 +387,7 @@ function LaunchOrgWideDialog({ open, onClose, onSuccess }: LaunchOrgWideDialogPr
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -415,6 +417,8 @@ type ScopeFilter = 'mine' | 'all';
 
 export default function ReviewsPage() {
   const { data: user } = useSession();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
   const isAdmin = user?.role === 'admin';
 
   const [scope, setScope] = useState<ScopeFilter>('mine');
@@ -444,7 +448,7 @@ export default function ReviewsPage() {
             justifyContent="space-between"
             flexWrap="wrap"
             gap={2}
-            mb={2}
+            mb={3}
           >
             <Box display="flex" alignItems="center" gap={2}>
               <Typography variant="h6" fontWeight={600}>
@@ -458,6 +462,22 @@ export default function ReviewsPage() {
                   onChange={(_, val) => {
                     if (val !== null) setScope(val as ScopeFilter);
                   }}
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      borderRadius: '8px !important',
+                      px: 1.5,
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      border: `1px solid ${t.border}`,
+                      color: t.muted,
+                      '&.Mui-selected': {
+                        bgcolor: t.primarySoft,
+                        color: t.primary,
+                        borderColor: t.primary,
+                      },
+                    },
+                  }}
                 >
                   <ToggleButton value="mine">Mine</ToggleButton>
                   <ToggleButton value="all">All</ToggleButton>
@@ -466,7 +486,7 @@ export default function ReviewsPage() {
             </Box>
 
             {isAdmin && (
-              <Box display="flex" gap={1}>
+              <Box display="flex" gap={1.5}>
                 <Button
                   variant="outlined"
                   size="small"
@@ -501,7 +521,19 @@ export default function ReviewsPage() {
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
+                  <TableRow
+                    sx={{
+                      '& .MuiTableCell-head': {
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        letterSpacing: '.05em',
+                        textTransform: 'uppercase',
+                        color: t.muted,
+                        borderBottom: `1px solid ${t.border}`,
+                        py: 1.25,
+                      },
+                    }}
+                  >
                     <TableCell>Period</TableCell>
                     <TableCell>Mentee</TableCell>
                     <TableCell>Mentor</TableCell>
@@ -513,7 +545,7 @@ export default function ReviewsPage() {
                 <TableBody>
                   {cycles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                         <Typography variant="body2" color="text.secondary">
                           No review cycles yet.
                         </Typography>
@@ -521,9 +553,18 @@ export default function ReviewsPage() {
                     </TableRow>
                   ) : (
                     cycles.map((cycle: CycleDto) => (
-                      <TableRow key={cycle.id} hover>
+                      <TableRow
+                        key={cycle.id}
+                        hover
+                        sx={{
+                          '& .MuiTableCell-body': {
+                            borderBottom: `1px solid ${t.border}`,
+                            py: 1.5,
+                          },
+                        }}
+                      >
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
+                          <Typography variant="body2" fontWeight={600}>
                             {cycle.periodLabel}
                           </Typography>
                         </TableCell>

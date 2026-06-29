@@ -24,14 +24,13 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Divider from '@mui/material/Divider';
 import Link from '@mui/material/Link';
 import Snackbar from '@mui/material/Snackbar';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import Stepper from '@mui/material/Stepper';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CheckIcon from '@mui/icons-material/Check';
+import { useTheme } from '@mui/material/styles';
 
 import { useSession } from '../auth/useSession';
 import {
@@ -42,6 +41,7 @@ import {
 } from '../reviews/useReviews';
 import ReviewForm from '../reviews/ReviewForm';
 import ComparisonView from '../reviews/ComparisonView';
+import { TOKENS } from '../theme';
 
 // ---- Helpers -----------------------------------------------------------------
 
@@ -108,6 +108,137 @@ function transitionButtonLabel(to: CycleStatus): string {
     closed: 'Close cycle',
   };
   return labels[to] ?? statusLabel(to);
+}
+
+// ---- Custom Stepper ----------------------------------------------------------
+
+interface CycleStepperProps {
+  activeStep: number;
+}
+
+function CycleStepper({ activeStep }: CycleStepperProps) {
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        overflowX: 'auto',
+        pb: 0.5,
+        gap: 0,
+      }}
+    >
+      {STEPPER_STEPS.map((step, index) => {
+        const isDone = index < activeStep;
+        const isActive = index === activeStep;
+        const isUpcoming = index > activeStep;
+        const isLast = index === STEPPER_STEPS.length - 1;
+
+        return (
+          <Box
+            key={step.status}
+            sx={{ display: 'flex', alignItems: 'center', flex: isLast ? 'none' : 1, minWidth: 0 }}
+          >
+            {/* Step node + label */}
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 0.75,
+                flex: 'none',
+              }}
+            >
+              {/* Dot */}
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'all .2s',
+                  ...(isDone && {
+                    bgcolor: t.success,
+                    color: '#fff',
+                    boxShadow: `0 0 0 3px ${t.successSoft}`,
+                  }),
+                  ...(isActive && {
+                    bgcolor: t.primary,
+                    color: '#fff',
+                    boxShadow: `0 0 0 3px ${t.primarySoft}`,
+                    outline: `1.5px solid ${t.primary}`,
+                    outlineOffset: 2,
+                  }),
+                  ...(isUpcoming && {
+                    bgcolor: t.surface2,
+                    border: `2px solid ${t.border}`,
+                    color: t.faint,
+                  }),
+                }}
+              >
+                {isDone ? (
+                  <CheckIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <Box
+                    sx={{
+                      width: isActive ? 8 : 6,
+                      height: isActive ? 8 : 6,
+                      borderRadius: '50%',
+                      bgcolor: isActive ? '#fff' : t.faint,
+                    }}
+                  />
+                )}
+              </Box>
+
+              {/* Label */}
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: isActive ? 700 : 400,
+                  color: isDone
+                    ? t.success
+                    : isActive
+                    ? t.primary
+                    : t.faint,
+                  whiteSpace: 'nowrap',
+                  letterSpacing: isActive ? '-.01em' : 0,
+                  transition: 'color .2s',
+                  maxWidth: 80,
+                  textAlign: 'center',
+                  display: 'block',
+                  lineHeight: 1.3,
+                }}
+              >
+                {step.label}
+              </Typography>
+            </Box>
+
+            {/* Connector line */}
+            {!isLast && (
+              <Box
+                sx={{
+                  flex: 1,
+                  height: 2,
+                  borderRadius: 1,
+                  mx: 1,
+                  mt: '-18px', /* align with dot center */
+                  bgcolor: isDone ? t.success : t.border,
+                  transition: 'background-color .3s',
+                  minWidth: 12,
+                  alignSelf: 'flex-start',
+                }}
+              />
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  );
 }
 
 // ---- Schedule Meeting Dialog -------------------------------------------------
@@ -306,6 +437,8 @@ function TabPanel({ value, index, children }: TabPanelProps) {
 export default function ReviewCyclePage() {
   const { id } = useParams<{ id: string }>();
   const { data: user } = useSession();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   const { data: cycle, isLoading, error } = useCycle(id ?? '');
   const transitionMut = useTransition(id ?? '');
@@ -463,16 +596,10 @@ export default function ReviewCyclePage() {
         />
       </Box>
 
-      {/* Stepper */}
+      {/* Custom Stepper */}
       <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ overflowX: 'auto' }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {STEPPER_STEPS.map((step) => (
-              <Step key={step.status}>
-                <StepLabel>{step.label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+        <CardContent sx={{ overflowX: 'auto', py: 3 }}>
+          <CycleStepper activeStep={activeStep} />
         </CardContent>
       </Card>
 
@@ -487,7 +614,17 @@ export default function ReviewCyclePage() {
       {availableTransitions.length > 0 && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="subtitle2" fontWeight={600} gutterBottom color="text.secondary">
+            <Typography
+              variant="overline"
+              component="div"
+              sx={{
+                fontSize: '0.68rem',
+                letterSpacing: '.1em',
+                color: t.muted,
+                mb: 1.5,
+                display: 'block',
+              }}
+            >
               Available actions
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={1.5}>

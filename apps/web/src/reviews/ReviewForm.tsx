@@ -2,7 +2,7 @@
  * ReviewForm — shown to the mentee (side=self) when status===self_assessment_open
  * and to the mentor (side=mentor) when status===mentor_assessment_open.
  *
- * Pre-fills from a fetched draft. Supports "Save draft" and "Submit".
+ * Pre-fills from a fetched draft. Supports "Save draft" and "Submit & lock".
  */
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -13,20 +13,19 @@ import type { SubmitReviewInput, ReviewSubmissionDto } from '@perf-tracker/share
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
-import FormControl from '@mui/material/FormControl';
 import FormHelperText from '@mui/material/FormHelperText';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import LockIcon from '@mui/icons-material/Lock';
 import SaveIcon from '@mui/icons-material/Save';
-import SendIcon from '@mui/icons-material/Send';
+import { useTheme } from '@mui/material/styles';
 
 import { useSaveDraft, useSubmitReview, useSubmission } from './useReviews';
+import { TOKENS } from '../theme';
 
 // ---- helpers -----------------------------------------------------------------
 
@@ -65,6 +64,80 @@ interface ReviewFormProps {
   onError: (msg: string) => void;
 }
 
+// ---- ScorePills: a segmented row of 5 selectable pills -----------------------
+
+interface ScorePillsProps {
+  value: number;
+  onChange: (val: number) => void;
+  disabled: boolean;
+}
+
+function ScorePills({ value, onChange, disabled }: ScorePillsProps) {
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        gap: 1,
+        flexWrap: 'wrap',
+      }}
+      role="group"
+    >
+      {RATING_SCALE_V1.levels.map((level) => {
+        const isSelected = value === level.score;
+        return (
+          <Tooltip key={level.score} title={level.anchor} placement="top">
+            <Box
+              component="button"
+              type="button"
+              disabled={disabled}
+              onClick={() => !disabled && onChange(level.score)}
+              aria-pressed={isSelected}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 0.25,
+                px: 1.5,
+                py: 0.75,
+                borderRadius: '999px',
+                border: `1.5px solid`,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                transition: 'all .15s',
+                background: 'none',
+                outline: 'none',
+                fontFamily: 'inherit',
+                '&:focus-visible': {
+                  boxShadow: `0 0 0 2px ${t.primary}`,
+                },
+                borderColor: isSelected ? t.primary : t.border,
+                bgcolor: isSelected ? t.primarySoft : t.surface2,
+                color: isSelected ? t.primary : t.muted,
+                opacity: disabled ? 0.55 : 1,
+              }}
+            >
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: '0.72rem',
+                  fontWeight: isSelected ? 700 : 500,
+                  lineHeight: 1.2,
+                  color: 'inherit',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {level.score} — {level.label}
+              </Typography>
+            </Box>
+          </Tooltip>
+        );
+      })}
+    </Box>
+  );
+}
+
 // ---- Component ---------------------------------------------------------------
 
 export default function ReviewForm({
@@ -74,6 +147,9 @@ export default function ReviewForm({
   onSuccess,
   onError,
 }: ReviewFormProps) {
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
+
   const { data: draft, isLoading: draftLoading } = useSubmission(cycleId, side);
   const saveDraft = useSaveDraft(cycleId, side);
   const submitReview = useSubmitReview(cycleId, side);
@@ -137,6 +213,8 @@ export default function ReviewForm({
     );
   }
 
+  const sortedQuestions = [...QUESTIONS].sort((a, b) => a.order - b.order);
+
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
       {isSubmitted && (
@@ -146,91 +224,107 @@ export default function ReviewForm({
       )}
 
       {/* ---- Questions ---- */}
-      <Typography variant="h6" fontWeight={600} gutterBottom>
+      <Typography
+        variant="overline"
+        component="div"
+        sx={{ fontSize: '0.68rem', letterSpacing: '.1em', color: t.muted, mb: 1.5 }}
+      >
         Written responses
       </Typography>
-      <Box display="flex" flexDirection="column" gap={3} mb={4}>
-        {QUESTIONS.sort((a, b) => a.order - b.order).map((q, qi) => (
-          <Box key={q.key}>
-            <TextField
-              label={`${qi + 1}. ${q.label}`}
-              fullWidth
-              multiline
-              minRows={4}
-              disabled={isLocked || pending}
-              error={!!errors.answers?.[qi]?.answerText}
-              helperText={errors.answers?.[qi]?.answerText?.message}
-              {...register(`answers.${qi}.answerText`)}
-            />
-            {/* hidden field: questionKey */}
-            <input type="hidden" {...register(`answers.${qi}.questionKey`)} value={q.key} />
-          </Box>
+
+      <Box display="flex" flexDirection="column" gap={2} mb={4}>
+        {sortedQuestions.map((q, qi) => (
+          <Card
+            key={q.key}
+            variant="outlined"
+            sx={{ boxShadow: 'none', border: `1px solid ${t.border}` }}
+          >
+            <CardContent sx={{ pb: '16px !important' }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                sx={{ mb: 1.5, color: t.text }}
+              >
+                {qi + 1}. {q.label}
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                minRows={4}
+                disabled={isLocked || pending}
+                error={!!errors.answers?.[qi]?.answerText}
+                helperText={errors.answers?.[qi]?.answerText?.message}
+                placeholder="Share your thoughts…"
+                {...register(`answers.${qi}.answerText`)}
+              />
+              {/* hidden field: questionKey */}
+              <input type="hidden" {...register(`answers.${qi}.questionKey`)} value={q.key} />
+            </CardContent>
+          </Card>
         ))}
       </Box>
 
-      <Divider sx={{ my: 3 }} />
-
       {/* ---- Metric ratings ---- */}
-      <Typography variant="h6" fontWeight={600} gutterBottom>
+      <Typography
+        variant="overline"
+        component="div"
+        sx={{ fontSize: '0.68rem', letterSpacing: '.1em', color: t.muted, mb: 1.5 }}
+      >
         Metric ratings
       </Typography>
-      <Box display="flex" flexDirection="column" gap={3} mb={4}>
+
+      <Box display="flex" flexDirection="column" gap={2} mb={4}>
         {METRICS.map((m, mi) => (
-          <Box key={m.key}>
-            {/* hidden field: metricKey */}
-            <input type="hidden" {...register(`ratings.${mi}.metricKey`)} value={m.key} />
+          <Card
+            key={m.key}
+            variant="outlined"
+            sx={{ boxShadow: 'none', border: `1px solid ${t.border}` }}
+          >
+            <CardContent sx={{ pb: '16px !important' }}>
+              {/* hidden field: metricKey */}
+              <input type="hidden" {...register(`ratings.${mi}.metricKey`)} value={m.key} />
 
-            <Controller
-              name={`ratings.${mi}.score`}
-              control={control}
-              render={({ field }) => (
-                <FormControl
-                  fullWidth
-                  error={!!errors.ratings?.[mi]?.score}
-                  disabled={isLocked || pending}
-                >
-                  <InputLabel id={`rating-label-${m.key}`}>{m.label}</InputLabel>
-                  <Select
-                    {...field}
-                    labelId={`rating-label-${m.key}`}
-                    label={m.label}
-                    value={field.value ?? ''}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  >
-                    {RATING_SCALE_V1.levels.map((level) => (
-                      <MenuItem key={level.score} value={level.score}>
-                        <Tooltip title={level.anchor} placement="right">
-                          <Box>
-                            <strong>{level.score} — {level.label}</strong>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              display="block"
-                            >
-                              {level.anchor}
-                            </Typography>
-                          </Box>
-                        </Tooltip>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.ratings?.[mi]?.score && (
-                    <FormHelperText>{errors.ratings[mi]?.score?.message}</FormHelperText>
-                  )}
-                </FormControl>
-              )}
-            />
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                sx={{ mb: 0.5, color: t.text }}
+              >
+                {m.label}
+              </Typography>
+              <Typography variant="caption" sx={{ color: t.muted, display: 'block', mb: 1.5 }}>
+                {m.description}
+              </Typography>
 
-            <TextField
-              label={`${m.label} — comment (optional)`}
-              fullWidth
-              multiline
-              minRows={2}
-              disabled={isLocked || pending}
-              sx={{ mt: 1.5 }}
-              {...register(`ratings.${mi}.comment`)}
-            />
-          </Box>
+              <Controller
+                name={`ratings.${mi}.score`}
+                control={control}
+                render={({ field }) => (
+                  <Box>
+                    <ScorePills
+                      value={field.value ?? 3}
+                      onChange={(val) => field.onChange(val)}
+                      disabled={isLocked || pending}
+                    />
+                    {errors.ratings?.[mi]?.score && (
+                      <FormHelperText error sx={{ mt: 0.5 }}>
+                        {errors.ratings[mi]?.score?.message}
+                      </FormHelperText>
+                    )}
+                  </Box>
+                )}
+              />
+
+              <TextField
+                label={`${m.label} — comment (optional)`}
+                fullWidth
+                multiline
+                minRows={2}
+                disabled={isLocked || pending}
+                sx={{ mt: 1.5 }}
+                {...register(`ratings.${mi}.comment`)}
+              />
+            </CardContent>
+          </Card>
         ))}
       </Box>
 
@@ -259,12 +353,12 @@ export default function ReviewForm({
               submitReview.isPending ? (
                 <CircularProgress size={16} color="inherit" />
               ) : (
-                <SendIcon />
+                <LockIcon />
               )
             }
             disabled={isLocked || pending}
           >
-            {submitReview.isPending ? 'Submitting…' : 'Submit review'}
+            {submitReview.isPending ? 'Submitting…' : 'Submit & lock'}
           </Button>
         </Box>
       )}
