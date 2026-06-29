@@ -10,9 +10,11 @@ import FeedbackIcon from '@mui/icons-material/Feedback';
 import EventIcon from '@mui/icons-material/Event';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import { useSession } from '../auth/useSession';
 import { useCycles } from '../reviews/useReviews';
 import { useFeedbackRequests } from '../feedback/useFeedback';
+import { TOKENS } from '../theme';
 
 interface DueCard {
   title: string;
@@ -27,6 +29,8 @@ interface DueCard {
 export default function DashboardPage() {
   const { data: user } = useSession();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   // Cycles I'm part of (as mentee or mentor) + cycles I mentor.
   const myCycles = useCycles();
@@ -56,7 +60,7 @@ export default function DashboardPage() {
       title: 'Reviews to complete',
       description:
         'Self-assessments and mentor reviews that need your attention right now.',
-      icon: <AssessmentIcon fontSize="large" color="primary" />,
+      icon: <AssessmentIcon sx={{ fontSize: 22, color: t.primary }} />,
       count: reviewsToComplete.length,
       loading: myCycles.isLoading,
       to: '/reviews',
@@ -65,7 +69,7 @@ export default function DashboardPage() {
     {
       title: 'Feedback requested of you',
       description: 'Colleagues who have asked for your feedback and are awaiting a reply.',
-      icon: <FeedbackIcon fontSize="large" color="secondary" />,
+      icon: <FeedbackIcon sx={{ fontSize: 22, color: t.violet }} />,
       count: pendingFeedback.length,
       loading: received.isLoading,
       to: '/feedback',
@@ -74,7 +78,7 @@ export default function DashboardPage() {
     {
       title: "Mentees' cycles in flight",
       description: 'Review cycles for employees you mentor that are not yet closed.',
-      icon: <EventIcon fontSize="large" color="warning" />,
+      icon: <EventIcon sx={{ fontSize: 22, color: t.amber }} />,
       count: menteesEnding.length,
       loading: menteeCycles.isLoading,
       to: '/reviews',
@@ -89,25 +93,34 @@ export default function DashboardPage() {
   return (
     <Box>
       {/* Greeting */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+      <Box mb={5}>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: t.text }}>
           {greeting},{' '}
-          <Box component="span" color="primary.main">
+          <Box component="span" sx={{ color: t.primary }}>
             {user?.displayName ?? '…'}
           </Box>
-          !
+          .
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Here is what is on your plate today.
+        <Typography variant="body1" sx={{ color: t.muted }}>
+          Here is what needs your attention today.
         </Typography>
       </Box>
 
       {/* What's due section */}
-      <Typography variant="h6" fontWeight={600} mb={2}>
-        What's due
+      <Typography
+        variant="overline"
+        component="div"
+        sx={{
+          fontSize: '0.68rem',
+          letterSpacing: '.1em',
+          color: t.muted,
+          mb: 2,
+        }}
+      >
+        What&apos;s due
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2.5}>
         {cards.map((card) => {
           const hasItems = card.count > 0;
           return (
@@ -115,66 +128,114 @@ export default function DashboardPage() {
               <Card
                 sx={{
                   height: '100%',
-                  transition: 'box-shadow 0.2s',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'box-shadow 0.18s ease, transform 0.18s ease',
                   '&:hover': {
-                    boxShadow:
-                      '0 4px 20px rgba(0,0,0,0.10), 0 1px 6px rgba(0,0,0,0.06)',
+                    boxShadow: t.shadowMd,
+                    transform: 'translateY(-1px)',
                   },
+                  // Left accent bar — present only when items are due
+                  '&::before': hasItems
+                    ? {
+                        content: '""',
+                        position: 'absolute',
+                        inset: '0 auto 0 0',
+                        width: 3,
+                        borderRadius: '16px 0 0 16px',
+                        bgcolor: t.primary,
+                      }
+                    : {},
                 }}
               >
                 <CardActionArea
                   onClick={() => navigate(card.to)}
-                  sx={{ height: '100%' }}
+                  sx={{ height: '100%', alignItems: 'flex-start' }}
                 >
-                  <CardContent sx={{ p: 3 }}>
-                    <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-                      {card.icon}
-                      <Typography variant="h6" fontWeight={600}>
+                  <CardContent sx={{ p: 3, height: '100%', boxSizing: 'border-box' }}>
+                    {/* Card header: icon + title */}
+                    <Box display="flex" alignItems="center" gap={1.25} mb={2.5}>
+                      <Box
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '10px',
+                          bgcolor: t.surface2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {card.icon}
+                      </Box>
+                      <Typography
+                        variant="subtitle2"
+                        fontWeight={600}
+                        sx={{ color: t.text, lineHeight: 1.3 }}
+                      >
                         {card.title}
                       </Typography>
                     </Box>
 
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                      mb={2}
-                      p={1.5}
-                      bgcolor={hasItems ? 'action.selected' : 'action.hover'}
-                      borderRadius={2}
-                    >
+                    {/* Count row */}
+                    <Box display="flex" alignItems="center" gap={1.25} mb={2}>
                       {hasItems ? (
                         <Chip
                           label={card.count}
                           size="small"
-                          color="primary"
-                          sx={{ fontWeight: 700 }}
+                          sx={{
+                            bgcolor: t.primarySoft,
+                            color: t.primary,
+                            fontWeight: 700,
+                            fontSize: '0.78rem',
+                            height: 22,
+                            minWidth: 28,
+                          }}
                         />
                       ) : (
                         <CheckCircleOutlineIcon
-                          fontSize="small"
-                          sx={{ color: 'text.disabled' }}
+                          sx={{ fontSize: 18, color: t.faint, flexShrink: 0 }}
                         />
                       )}
                       <Typography
                         variant="body2"
-                        color="text.secondary"
-                        fontStyle={hasItems ? 'normal' : 'italic'}
+                        sx={{
+                          color: hasItems ? t.text : t.muted,
+                          fontStyle: hasItems ? 'normal' : 'italic',
+                          fontSize: '0.82rem',
+                        }}
                       >
                         {card.loading
                           ? 'Loading…'
                           : hasItems
                             ? `${card.count} item${card.count > 1 ? 's' : ''} need${card.count > 1 ? '' : 's'} attention`
-                            : 'Nothing due — you are all caught up'}
+                            : 'Nothing due — all caught up'}
                       </Typography>
                     </Box>
 
-                    <Typography variant="body2" color="text.secondary">
+                    {/* Description */}
+                    <Typography
+                      variant="body2"
+                      sx={{ color: t.muted, fontSize: '0.82rem', lineHeight: 1.55 }}
+                    >
                       {card.description}
                     </Typography>
 
-                    <Box mt={2}>
-                      <Chip label={card.cta} size="small" variant="outlined" />
+                    {/* CTA chip */}
+                    <Box mt={2.5}>
+                      <Chip
+                        label={card.cta}
+                        size="small"
+                        sx={{
+                          bgcolor: hasItems ? t.primarySoft : t.surface2,
+                          color: hasItems ? t.primary : t.muted,
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          height: 24,
+                          cursor: 'pointer',
+                        }}
+                      />
                     </Box>
                   </CardContent>
                 </CardActionArea>

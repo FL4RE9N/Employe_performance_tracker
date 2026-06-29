@@ -18,6 +18,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import { DIGEST_FREQUENCY_VALUES } from '@perf-tracker/shared';
 import type { DigestFrequency, NotificationDto } from '@perf-tracker/shared';
 import {
@@ -27,6 +28,7 @@ import {
   useNotificationPreferences,
   useUpdatePreferences,
 } from '../notifications/useNotifications';
+import { TOKENS } from '../theme';
 
 function relativeTime(dateStr: string): string {
   const now = Date.now();
@@ -46,6 +48,8 @@ function NotificationItem({
   onMarkRead: (id: string) => void;
 }) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
   const isUnread = notification.status === 'unread';
 
   const handleClick = () => {
@@ -57,29 +61,51 @@ function NotificationItem({
     <ListItem
       disablePadding
       sx={{
-        backgroundColor: isUnread ? 'action.hover' : 'transparent',
-        borderLeft: isUnread ? '3px solid' : '3px solid transparent',
-        borderLeftColor: isUnread ? 'primary.main' : 'transparent',
+        backgroundColor: isUnread ? t.primarySoft : 'transparent',
+        borderLeft: '3px solid',
+        borderLeftColor: isUnread ? t.primary : 'transparent',
+        transition: 'background-color .15s ease',
       }}
     >
-      <ListItemButton onClick={handleClick} sx={{ py: 1.5 }}>
+      <ListItemButton
+        onClick={handleClick}
+        sx={{
+          py: 2,
+          px: 2.5,
+          '&:hover': {
+            backgroundColor: isUnread ? t.primarySoft : t.surface2,
+          },
+        }}
+      >
         <ListItemText
+          disableTypography
           primary={
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                gap: 2,
+                mb: 0.25,
+              }}
+            >
               <Typography
                 variant="body2"
                 fontWeight={isUnread ? 700 : 400}
-                sx={{ flex: 1, mr: 2 }}
+                sx={{ flex: 1, color: isUnread ? t.text : t.muted }}
               >
                 {notification.title}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              <Typography
+                variant="caption"
+                sx={{ color: t.faint, whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
                 {relativeTime(notification.createdAt)}
               </Typography>
             </Box>
           }
           secondary={
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: t.muted }}>
               {notification.body}
             </Typography>
           }
@@ -92,6 +118,8 @@ function NotificationItem({
 function PreferencesSection() {
   const { data: prefs, isLoading, isError } = useNotificationPreferences();
   const updatePrefs = useUpdatePreferences();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   if (isLoading) {
     return (
@@ -108,41 +136,83 @@ function PreferencesSection() {
   }
 
   return (
-    <Stack spacing={2}>
-      <FormControlLabel
-        control={
-          <Switch
-            checked={prefs.emailEnabled}
+    <Stack spacing={3}>
+      {/* Email toggle row */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          py: 1.5,
+          px: 2,
+          borderRadius: 2,
+          border: `1px solid ${t.border}`,
+          bgcolor: t.surface2,
+        }}
+      >
+        <Box>
+          <Typography variant="body2" fontWeight={600} sx={{ color: t.text }}>
+            Email notifications
+          </Typography>
+          <Typography variant="caption" sx={{ color: t.muted }}>
+            Receive alerts directly in your inbox
+          </Typography>
+        </Box>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={prefs.emailEnabled}
+              onChange={(e) => {
+                updatePrefs.mutate({ emailEnabled: e.target.checked });
+              }}
+              disabled={updatePrefs.isPending}
+            />
+          }
+          label=""
+          sx={{ m: 0 }}
+        />
+      </Box>
+
+      {/* Digest frequency */}
+      <Box>
+        <Typography
+          variant="overline"
+          component="div"
+          sx={{
+            fontSize: '0.68rem',
+            letterSpacing: '.1em',
+            color: t.muted,
+            mb: 1,
+          }}
+        >
+          Digest frequency
+        </Typography>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel id="digest-freq-label">How often</InputLabel>
+          <Select<DigestFrequency>
+            labelId="digest-freq-label"
+            label="How often"
+            value={prefs.digestFrequency}
             onChange={(e) => {
-              updatePrefs.mutate({ emailEnabled: e.target.checked });
+              updatePrefs.mutate({
+                digestFrequency: e.target.value as DigestFrequency,
+              });
             }}
             disabled={updatePrefs.isPending}
-          />
-        }
-        label="Email notifications"
-      />
-
-      <FormControl size="small" sx={{ minWidth: 200 }}>
-        <InputLabel id="digest-freq-label">Digest frequency</InputLabel>
-        <Select<DigestFrequency>
-          labelId="digest-freq-label"
-          label="Digest frequency"
-          value={prefs.digestFrequency}
-          onChange={(e) => {
-            updatePrefs.mutate({ digestFrequency: e.target.value as DigestFrequency });
-          }}
-          disabled={updatePrefs.isPending}
-        >
-          {DIGEST_FREQUENCY_VALUES.map((f) => (
-            <MenuItem key={f} value={f}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          >
+            {DIGEST_FREQUENCY_VALUES.map((f) => (
+              <MenuItem key={f} value={f}>
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
       {updatePrefs.isError && (
-        <Alert severity="error">Failed to save preferences. Please try again.</Alert>
+        <Alert severity="error">
+          Failed to save preferences. Please try again.
+        </Alert>
       )}
     </Stack>
   );
@@ -152,77 +222,127 @@ export default function NotificationsPage() {
   const { data, isLoading, isError } = useNotifications();
   const markRead = useMarkRead();
   const markAllRead = useMarkAllRead();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-      <Stack spacing={3}>
+      <Stack spacing={4}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h5" fontWeight={700}>
-            Notifications
-          </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              Notifications
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Stay on top of reviews, goals, and feedback updates.
+            </Typography>
+          </Box>
           {unreadCount > 0 && (
             <Button
               variant="outlined"
               size="small"
               onClick={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
+              sx={{ flexShrink: 0 }}
             >
-              Mark all as read
+              Mark all read
             </Button>
           )}
         </Box>
 
-        {/* Notification List */}
-        <Card variant="outlined">
-          {isLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
-          )}
+        {/* Feed */}
+        <Box>
+          <Typography
+            variant="overline"
+            component="div"
+            sx={{
+              fontSize: '0.68rem',
+              letterSpacing: '.1em',
+              color: t.muted,
+              mb: 1.5,
+            }}
+          >
+            {unreadCount > 0 ? `${unreadCount} unread` : 'Activity'}
+          </Typography>
 
-          {!isLoading && isError && (
-            <Box sx={{ p: 3 }}>
-              <Alert severity="error">Failed to load notifications. Please refresh.</Alert>
-            </Box>
-          )}
+          <Card>
+            {isLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            )}
 
-          {!isLoading && !isError && items.length === 0 && (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1" color="text.secondary">
-                You have no notifications yet.
-              </Typography>
-            </Box>
-          )}
+            {!isLoading && isError && (
+              <Box sx={{ p: 3 }}>
+                <Alert severity="error">
+                  Failed to load notifications. Please refresh.
+                </Alert>
+              </Box>
+            )}
 
-          {!isLoading && !isError && items.length > 0 && (
-            <List disablePadding>
-              {items.map((n, idx) => (
-                <Box key={n.id}>
-                  <NotificationItem
-                    notification={n}
-                    onMarkRead={(id) => markRead.mutate(id)}
-                  />
-                  {idx < items.length - 1 && <Divider />}
-                </Box>
-              ))}
-            </List>
-          )}
-        </Card>
+            {!isLoading && !isError && items.length === 0 && (
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: t.muted }}>
+                  Nothing here yet.
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: t.faint, display: 'block', mt: 0.5 }}
+                >
+                  Notifications appear when there&apos;s activity on your goals
+                  and reviews.
+                </Typography>
+              </Box>
+            )}
+
+            {!isLoading && !isError && items.length > 0 && (
+              <List disablePadding>
+                {items.map((n, idx) => (
+                  <Box key={n.id}>
+                    <NotificationItem
+                      notification={n}
+                      onMarkRead={(id) => markRead.mutate(id)}
+                    />
+                    {idx < items.length - 1 && (
+                      <Divider sx={{ borderColor: t.border }} />
+                    )}
+                  </Box>
+                ))}
+              </List>
+            )}
+          </Card>
+        </Box>
 
         {/* Preferences */}
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Notification Preferences
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <PreferencesSection />
-          </CardContent>
-        </Card>
+        <Box>
+          <Typography
+            variant="overline"
+            component="div"
+            sx={{
+              fontSize: '0.68rem',
+              letterSpacing: '.1em',
+              color: t.muted,
+              mb: 1.5,
+            }}
+          >
+            Preferences
+          </Typography>
+          <Card>
+            <CardContent sx={{ p: 3 }}>
+              <PreferencesSection />
+            </CardContent>
+          </Card>
+        </Box>
       </Stack>
     </Box>
   );

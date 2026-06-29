@@ -48,6 +48,7 @@ import AddIcon from '@mui/icons-material/Add';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import EditIcon from '@mui/icons-material/Edit';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
+import { useTheme } from '@mui/material/styles';
 
 import {
   useUsers,
@@ -57,11 +58,70 @@ import {
   useCreatePairing,
   useClosePairing,
 } from '../admin/useAdminUsers';
+import { TOKENS } from '../theme';
 
 // ---- Helpers ----------------------------------------------------------------
 
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'An unexpected error occurred.';
+}
+
+/** Shared overline style for table-header rows — mirrors ReviewsPage convention. */
+const TABLE_HEAD_SX = {
+  '& .MuiTableCell-head': {
+    fontSize: '0.72rem',
+    fontWeight: 600,
+    letterSpacing: '.05em',
+    textTransform: 'uppercase' as const,
+    py: 1.25,
+  },
+};
+
+// ---- Role chip ---------------------------------------------------------------
+
+function RoleChip({ role }: { role: string }) {
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
+
+  const style: { bgcolor: string; color: string } = (() => {
+    switch (role) {
+      case 'admin':
+        return { bgcolor: t.primarySoft, color: t.primary };
+      case 'mentor':
+        return { bgcolor: t.violetSoft, color: t.violet };
+      default:
+        return { bgcolor: t.surface2, color: t.muted };
+    }
+  })();
+
+  return (
+    <Chip
+      label={role.charAt(0).toUpperCase() + role.slice(1)}
+      size="small"
+      sx={{ ...style, fontWeight: 600, border: 'none' }}
+    />
+  );
+}
+
+// ---- Active chip -------------------------------------------------------------
+
+function ActiveChip({ isActive }: { isActive: boolean }) {
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
+
+  return isActive ? (
+    <Chip
+      label="Active"
+      size="small"
+      sx={{ bgcolor: t.successSoft, color: t.success, fontWeight: 600, border: 'none' }}
+    />
+  ) : (
+    <Chip
+      label="Inactive"
+      size="small"
+      sx={{ bgcolor: t.surface2, color: t.faint, fontWeight: 600, border: 'none' }}
+    />
+  );
 }
 
 // ---- New User Dialog --------------------------------------------------------
@@ -109,13 +169,9 @@ function NewUserDialog({ open, onClose, onSuccess }: NewUserDialogProps) {
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>New User</DialogTitle>
-      <Box
-        component="form"
-        onSubmit={handleSubmit(onSubmit)}
-        noValidate
-      >
-        <DialogContent>
+      <DialogTitle sx={{ pb: 1 }}>New user</DialogTitle>
+      <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <DialogContent sx={{ pt: 1 }}>
           {apiError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {apiError}
@@ -171,7 +227,7 @@ function NewUserDialog({ open, onClose, onSuccess }: NewUserDialogProps) {
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -183,7 +239,7 @@ function NewUserDialog({ open, onClose, onSuccess }: NewUserDialogProps) {
               pending ? <CircularProgress size={16} color="inherit" /> : null
             }
           >
-            {pending ? 'Creating…' : 'Create'}
+            {pending ? 'Creating…' : 'Create user'}
           </Button>
         </DialogActions>
       </Box>
@@ -235,9 +291,19 @@ function EditUserDialog({ user, onClose, onSuccess }: EditUserDialogProps) {
 
   return (
     <Dialog open={!!user} onClose={handleClose} fullWidth maxWidth="xs">
-      <DialogTitle>Edit User — {user?.email}</DialogTitle>
+      <DialogTitle sx={{ pb: 0.5 }}>
+        Edit user
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          component="div"
+          sx={{ mt: 0.25, fontWeight: 400 }}
+        >
+          {user?.email}
+        </Typography>
+      </DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <DialogContent>
+        <DialogContent sx={{ pt: 2 }}>
           {apiError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {apiError}
@@ -263,9 +329,19 @@ function EditUserDialog({ user, onClose, onSuccess }: EditUserDialogProps) {
                 </FormControl>
               )}
             />
-            <Box display="flex" alignItems="center" gap={1}>
+            <Box
+              display="flex"
+              alignItems="center"
+              gap={1}
+              sx={(theme) => ({
+                px: 1.5,
+                py: 1,
+                borderRadius: 2,
+                border: `1px solid ${TOKENS[theme.palette.mode].border}`,
+              })}
+            >
               <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                Active
+                Account active
               </Typography>
               <Controller
                 name="isActive"
@@ -275,13 +351,14 @@ function EditUserDialog({ user, onClose, onSuccess }: EditUserDialogProps) {
                     checked={field.value ?? true}
                     onChange={(e) => field.onChange(e.target.checked)}
                     disabled={pending}
+                    size="small"
                   />
                 )}
               />
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -293,7 +370,7 @@ function EditUserDialog({ user, onClose, onSuccess }: EditUserDialogProps) {
               pending ? <CircularProgress size={16} color="inherit" /> : null
             }
           >
-            {pending ? 'Saving…' : 'Save'}
+            {pending ? 'Saving…' : 'Save changes'}
           </Button>
         </DialogActions>
       </Box>
@@ -433,6 +510,8 @@ export default function AdminUsersPage() {
   const { data: users = [], isLoading: usersLoading, error: usersError } = useUsers();
   const { data: pairings = [], isLoading: pairingsLoading, error: pairingsError } = usePairings();
   const closePairing = useClosePairing();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   const [newUserOpen, setNewUserOpen] = useState(false);
   const [editUser, setEditUser] = useState<AdminUserDto | null>(null);
@@ -454,11 +533,23 @@ export default function AdminUsersPage() {
       {/* Page header */}
       <Box mb={4} display="flex" alignItems="flex-start" gap={2} flexWrap="wrap">
         <Box flex={1}>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Admin — Users &amp; Pairings
+          <Typography
+            variant="overline"
+            component="div"
+            sx={{
+              fontSize: '0.68rem',
+              letterSpacing: '.1em',
+              color: t.muted,
+              mb: 0.5,
+            }}
+          >
+            Admin
+          </Typography>
+          <Typography variant="h4" fontWeight={700} gutterBottom sx={{ mt: 0 }}>
+            Users &amp; Pairings
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage user accounts, roles, and mentor-mentee pairings.
+            Manage accounts, roles, and mentor-mentee pairings.
           </Typography>
         </Box>
         <Button
@@ -474,13 +565,26 @@ export default function AdminUsersPage() {
       </Box>
 
       {/* ---- Users section ---- */}
+      <Typography
+        variant="overline"
+        component="div"
+        sx={{
+          fontSize: '0.68rem',
+          letterSpacing: '.1em',
+          color: t.muted,
+          mb: 1.5,
+        }}
+      >
+        User accounts
+      </Typography>
+
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Box
             display="flex"
             alignItems="center"
             justifyContent="space-between"
-            mb={2}
+            mb={2.5}
           >
             <Typography variant="h6" fontWeight={600}>
               Users
@@ -509,18 +613,27 @@ export default function AdminUsersPage() {
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
+                  <TableRow
+                    sx={{
+                      ...TABLE_HEAD_SX,
+                      '& .MuiTableCell-head': {
+                        ...TABLE_HEAD_SX['& .MuiTableCell-head'],
+                        color: t.muted,
+                        borderBottom: `1px solid ${t.border}`,
+                      },
+                    }}
+                  >
                     <TableCell>Email</TableCell>
                     <TableCell>Name</TableCell>
                     <TableCell>Role</TableCell>
-                    <TableCell>Active</TableCell>
+                    <TableCell>Status</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
                         <Typography variant="body2" color="text.secondary">
                           No users found.
                         </Typography>
@@ -528,30 +641,38 @@ export default function AdminUsersPage() {
                     </TableRow>
                   ) : (
                     users.map((user) => (
-                      <TableRow key={user.id} hover>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.displayName}</TableCell>
+                      <TableRow
+                        key={user.id}
+                        hover
+                        sx={{
+                          '& .MuiTableCell-body': {
+                            borderBottom: `1px solid ${t.border}`,
+                            py: 1.5,
+                          },
+                        }}
+                      >
                         <TableCell>
-                          <Chip
-                            label={user.role}
-                            size="small"
-                            color={user.role === 'admin' ? 'primary' : 'default'}
-                            variant="outlined"
-                          />
+                          <Typography variant="body2" sx={{ color: t.text }}>
+                            {user.email}
+                          </Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            label={user.isActive ? 'Active' : 'Inactive'}
-                            size="small"
-                            color={user.isActive ? 'success' : 'default'}
-                            variant={user.isActive ? 'filled' : 'outlined'}
-                          />
+                          <Typography variant="body2" fontWeight={500}>
+                            {user.displayName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <RoleChip role={user.role} />
+                        </TableCell>
+                        <TableCell>
+                          <ActiveChip isActive={user.isActive} />
                         </TableCell>
                         <TableCell align="right">
-                          <Tooltip title="Edit role / active">
+                          <Tooltip title="Edit role / status">
                             <IconButton
                               size="small"
                               onClick={() => setEditUser(user)}
+                              sx={{ color: t.muted }}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -568,10 +689,23 @@ export default function AdminUsersPage() {
       </Card>
 
       {/* ---- Pairings section ---- */}
+      <Typography
+        variant="overline"
+        component="div"
+        sx={{
+          fontSize: '0.68rem',
+          letterSpacing: '.1em',
+          color: t.muted,
+          mb: 1.5,
+        }}
+      >
+        Mentor-mentee pairings
+      </Typography>
+
       <Card>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" fontWeight={600} mb={2}>
-            Mentor-Mentee Pairings
+          <Typography variant="h6" fontWeight={600} mb={2.5}>
+            Pairings
           </Typography>
 
           <NewPairingForm onSuccess={(msg) => setSnackMsg(msg)} />
@@ -602,36 +736,70 @@ export default function AdminUsersPage() {
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
+                  <TableRow
+                    sx={{
+                      ...TABLE_HEAD_SX,
+                      '& .MuiTableCell-head': {
+                        ...TABLE_HEAD_SX['& .MuiTableCell-head'],
+                        color: t.muted,
+                        borderBottom: `1px solid ${t.border}`,
+                      },
+                    }}
+                  >
                     <TableCell>Mentor</TableCell>
                     <TableCell>Mentee</TableCell>
-                    <TableCell>Effective From</TableCell>
-                    <TableCell>Effective To</TableCell>
+                    <TableCell>From</TableCell>
+                    <TableCell>To</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {pairings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
                         <Typography variant="body2" color="text.secondary">
-                          No pairings found.
+                          No pairings yet. Create one above.
                         </Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
                     pairings.map((pairing) => (
-                      <TableRow key={pairing.id} hover>
-                        <TableCell>{pairing.mentorName}</TableCell>
-                        <TableCell>{pairing.menteeName}</TableCell>
-                        <TableCell>{pairing.effectiveFrom}</TableCell>
+                      <TableRow
+                        key={pairing.id}
+                        hover
+                        sx={{
+                          '& .MuiTableCell-body': {
+                            borderBottom: `1px solid ${t.border}`,
+                            py: 1.5,
+                          },
+                        }}
+                      >
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={500}>
+                            {pairing.mentorName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {pairing.menteeName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {pairing.effectiveFrom}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           {pairing.effectiveTo ?? (
                             <Chip
                               label="Open"
                               size="small"
-                              color="success"
-                              variant="outlined"
+                              sx={{
+                                bgcolor: t.successSoft,
+                                color: t.success,
+                                fontWeight: 600,
+                                border: 'none',
+                              }}
                             />
                           )}
                         </TableCell>
@@ -640,9 +808,9 @@ export default function AdminUsersPage() {
                             <Tooltip title="Close pairing">
                               <IconButton
                                 size="small"
-                                color="warning"
                                 onClick={() => handleClosePairing(pairing.id)}
                                 disabled={closePairing.isPending}
+                                sx={{ color: t.amber }}
                               >
                                 <LinkOffIcon fontSize="small" />
                               </IconButton>

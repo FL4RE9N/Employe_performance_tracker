@@ -19,7 +19,6 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import FormHelperText from '@mui/material/FormHelperText';
 import IconButton from '@mui/material/IconButton';
@@ -36,6 +35,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import CelebrationIcon from '@mui/icons-material/Celebration';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { useTheme } from '@mui/material/styles';
 
 import {
   useFeed,
@@ -45,6 +45,7 @@ import {
   useRemoveAppreciation,
 } from '../appreciation/useAppreciation';
 import { useDirectory } from '../admin/useAdminUsers';
+import { TOKENS, BRAND_GRADIENT } from '../theme';
 
 // ---- Helpers ----------------------------------------------------------------
 
@@ -97,6 +98,8 @@ interface ComposerProps {
 function AppreciationComposer({ onSuccess }: ComposerProps) {
   const { data: directory = [] } = useDirectory();
   const createAppreciation = useCreateAppreciation();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
   const [apiError, setApiError] = useState<string | null>(null);
 
   const {
@@ -128,9 +131,24 @@ function AppreciationComposer({ onSuccess }: ComposerProps) {
   const pending = isSubmitting || createAppreciation.isPending;
 
   return (
-    <Card variant="outlined" sx={{ mb: 3 }}>
+    <Card
+      sx={{
+        mb: 4,
+        bgcolor: t.surface2,
+        border: `1px solid ${t.border}`,
+      }}
+    >
       <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" fontWeight={600} gutterBottom>
+        <Typography
+          variant="overline"
+          component="div"
+          sx={{
+            fontSize: '0.68rem',
+            letterSpacing: '.1em',
+            color: t.muted,
+            mb: 2,
+          }}
+        >
           Recognise a teammate
         </Typography>
         <Box
@@ -252,6 +270,8 @@ function AppreciationCard({ item, onSuccess }: AppreciationCardProps) {
   const react = useReact();
   const unreact = useUnreact();
   const remove = useRemoveAppreciation();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   const handleReaction = async (type: string) => {
     const existing = item.reactions.find((r) => r.type === type);
@@ -278,19 +298,30 @@ function AppreciationCard({ item, onSuccess }: AppreciationCardProps) {
   const reactionMap = new Map(item.reactions.map((r) => [r.type, r]));
 
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
-      <CardContent sx={{ p: 2.5 }}>
-        {/* Header */}
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
+    <Card sx={{ mb: 2 }}>
+      <CardContent sx={{ p: 3 }}>
+        {/* Header: author + timestamp + delete */}
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
           <Box display="flex" alignItems="center" gap={1.5}>
-            <Avatar sx={{ width: 36, height: 36, fontSize: '0.875rem' }}>
+            {/* Aesthetic risk: brand gradient avatar instead of flat fill */}
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                background: BRAND_GRADIENT(t),
+                color: '#ffffff',
+                flexShrink: 0,
+              }}
+            >
               {getInitials(item.authorName)}
             </Avatar>
             <Box>
-              <Typography variant="body2" fontWeight={600}>
+              <Typography variant="body2" fontWeight={600} sx={{ color: t.text }}>
                 {item.authorName}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: t.faint }}>
                 {formatRelativeTime(item.createdAt)}
               </Typography>
             </Box>
@@ -309,39 +340,56 @@ function AppreciationCard({ item, onSuccess }: AppreciationCardProps) {
           )}
         </Box>
 
-        {/* Recipients */}
-        <Box mb={1.5}>
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-            To:
+        {/* Recipients + metric tag */}
+        <Box mb={2} display="flex" alignItems="center" flexWrap="wrap" gap={0.75}>
+          <Typography
+            variant="caption"
+            sx={{ color: t.muted, fontWeight: 600, mr: 0.25 }}
+          >
+            To
           </Typography>
           {item.recipients.map((r) => (
             <Chip
               key={r.id}
               label={r.displayName}
               size="small"
-              sx={{ mr: 0.5, mb: 0.5 }}
+              sx={{
+                bgcolor: t.primarySoft,
+                color: t.primary,
+                fontWeight: 600,
+                fontSize: '0.72rem',
+              }}
             />
           ))}
           {item.metricTag && (
             <Chip
               label={metricLabel(item.metricTag)}
               size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ mb: 0.5 }}
+              sx={{
+                bgcolor: t.violetSoft,
+                color: t.violet,
+                fontWeight: 600,
+                fontSize: '0.72rem',
+              }}
             />
           )}
         </Box>
 
         {/* Message */}
-        <Typography variant="body2" sx={{ mb: 2, whiteSpace: 'pre-wrap' }}>
+        <Typography
+          variant="body2"
+          sx={{
+            mb: 2.5,
+            whiteSpace: 'pre-wrap',
+            color: t.text,
+            lineHeight: 1.65,
+          }}
+        >
           {item.message}
         </Typography>
 
-        <Divider sx={{ mb: 1.5 }} />
-
         {/* Reactions */}
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
           {REACTION_TYPES.map(({ type, label, icon }) => {
             const r = reactionMap.get(type);
             const count = r?.count ?? 0;
@@ -350,11 +398,25 @@ function AppreciationCard({ item, onSuccess }: AppreciationCardProps) {
               <Button
                 key={type}
                 size="small"
-                variant={mine ? 'contained' : 'outlined'}
                 onClick={() => void handleReaction(type)}
                 startIcon={icon}
-                sx={{ minWidth: 0, px: 1.25, fontSize: '0.75rem' }}
                 aria-label={`${label}${count > 0 ? ` (${count})` : ''}`}
+                sx={{
+                  minWidth: 0,
+                  px: 1.25,
+                  py: 0.5,
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: '999px',
+                  bgcolor: mine ? t.primarySoft : t.surface2,
+                  color: mine ? t.primary : t.muted,
+                  border: `1px solid ${mine ? t.primary : t.border}`,
+                  '&:hover': {
+                    bgcolor: t.primarySoft,
+                    color: t.primary,
+                    borderColor: t.primary,
+                  },
+                }}
               >
                 {count > 0 ? count : label}
               </Button>
@@ -371,6 +433,8 @@ function AppreciationCard({ item, onSuccess }: AppreciationCardProps) {
 export default function AppreciationPage() {
   const { data: feed = [], isLoading, error } = useFeed();
   const [snackMsg, setSnackMsg] = useState<string | null>(null);
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   // Sort reverse-chronological
   const sorted = [...feed].sort(
@@ -381,10 +445,10 @@ export default function AppreciationPage() {
     <Box>
       {/* Page header */}
       <Box mb={4}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: t.text }}>
           Appreciation
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: t.muted }}>
           Celebrate the work and values teammates bring every day.
         </Typography>
       </Box>
@@ -399,14 +463,29 @@ export default function AppreciationPage() {
         </Alert>
       )}
 
+      {sorted.length > 0 && (
+        <Typography
+          variant="overline"
+          component="div"
+          sx={{
+            fontSize: '0.68rem',
+            letterSpacing: '.1em',
+            color: t.muted,
+            mb: 2,
+          }}
+        >
+          Recent recognitions
+        </Typography>
+      )}
+
       {isLoading ? (
         <Box display="flex" justifyContent="center" py={6}>
           <CircularProgress />
         </Box>
       ) : sorted.length === 0 ? (
-        <Card variant="outlined">
+        <Card>
           <CardContent sx={{ py: 6, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: t.muted }}>
               No appreciations yet. Be the first to recognise a teammate.
             </Typography>
           </CardContent>

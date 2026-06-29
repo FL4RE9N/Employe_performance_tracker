@@ -34,6 +34,8 @@ import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { useTheme } from '@mui/material/styles';
 
 import {
   useFeedbackRequests,
@@ -42,6 +44,7 @@ import {
   useDecline,
 } from '../feedback/useFeedback';
 import { useDirectory } from '../admin/useAdminUsers';
+import { TOKENS } from '../theme';
 
 // ---- Helpers ----------------------------------------------------------------
 
@@ -56,21 +59,6 @@ function formatDate(isoDate: string | null): string {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function statusColor(
-  status: FeedbackRequestDto['status'],
-): 'default' | 'warning' | 'success' | 'error' {
-  switch (status) {
-    case 'pending':
-      return 'warning';
-    case 'completed':
-      return 'success';
-    case 'declined':
-      return 'error';
-    default:
-      return 'default';
-  }
 }
 
 function statusLabel(status: FeedbackRequestDto['status']): string {
@@ -140,9 +128,9 @@ function RequestFeedbackDialog({
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Request feedback</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Request feedback</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <DialogContent>
+        <DialogContent sx={{ pt: 1 }}>
           {apiError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {apiError}
@@ -217,7 +205,7 @@ function RequestFeedbackDialog({
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -249,6 +237,8 @@ interface RespondDialogProps {
 
 function RespondDialog({ request, onClose, onSuccess }: RespondDialogProps) {
   const respond = useRespond();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
   const [apiError, setApiError] = useState<string | null>(null);
 
   const {
@@ -284,9 +274,9 @@ function RespondDialog({ request, onClose, onSuccess }: RespondDialogProps) {
 
   return (
     <Dialog open={!!request} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Respond to feedback request</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Respond to feedback request</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <DialogContent>
+        <DialogContent sx={{ pt: 1 }}>
           {apiError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {apiError}
@@ -296,17 +286,21 @@ function RespondDialog({ request, onClose, onSuccess }: RespondDialogProps) {
             <Box
               sx={{
                 p: 2,
-                mb: 2,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-                borderLeft: '3px solid',
-                borderLeftColor: 'primary.main',
+                mb: 2.5,
+                bgcolor: t.surface2,
+                borderRadius: 2,
+                borderLeft: `3px solid ${t.border2}`,
               }}
             >
-              <Typography variant="caption" color="text.secondary" gutterBottom>
+              <Typography
+                variant="caption"
+                sx={{ color: t.muted, fontWeight: 600, display: 'block', mb: 0.5 }}
+              >
                 Prompt from {request.requesterName}
               </Typography>
-              <Typography variant="body2">{request.prompt}</Typography>
+              <Typography variant="body2" sx={{ color: t.text }}>
+                {request.prompt}
+              </Typography>
             </Box>
           )}
           <Box display="flex" flexDirection="column" gap={2} pt={0.5}>
@@ -322,7 +316,7 @@ function RespondDialog({ request, onClose, onSuccess }: RespondDialogProps) {
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -355,6 +349,8 @@ interface FeedbackCardProps {
 
 function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
   const decline = useDecline();
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   const handleDecline = async () => {
     try {
@@ -365,8 +361,31 @@ function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
     }
   };
 
+  // Token-based soft chip colors per spec
+  const statusChipSx = (() => {
+    switch (item.status) {
+      case 'pending':
+        return { bgcolor: t.amberSoft, color: t.amber, fontWeight: 600 };
+      case 'completed':
+        return { bgcolor: t.successSoft, color: t.success, fontWeight: 600 };
+      case 'declined':
+        return { bgcolor: t.surface2, color: t.muted, fontWeight: 600 };
+      default:
+        return { bgcolor: t.surface2, color: t.faint, fontWeight: 600 };
+    }
+  })();
+
+  const isPending = item.status === 'pending';
+
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
+    <Card
+      sx={{
+        mb: 2,
+        borderLeft: isPending && box === 'received'
+          ? `3px solid ${t.amber}`
+          : undefined,
+      }}
+    >
       <CardContent sx={{ p: 2.5 }}>
         {/* Header */}
         <Box
@@ -374,25 +393,39 @@ function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
           alignItems="flex-start"
           justifyContent="space-between"
           mb={1.5}
+          gap={1}
         >
           <Box>
-            <Typography variant="body2" fontWeight={600}>
+            <Typography variant="body2" fontWeight={600} sx={{ color: t.text }}>
               {box === 'received'
-                ? `From: ${item.requesterName}`
-                : `To: ${item.targetName}`}
+                ? `From ${item.requesterName}`
+                : `To ${item.targetName}`}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: t.muted }}>
               Requested {formatDate(item.createdAt)}
               {item.dueDate ? ` · Due ${formatDate(item.dueDate)}` : ''}
-              {item.anonymity ? ' · Anonymous' : ''}
             </Typography>
           </Box>
-          <Chip
-            label={statusLabel(item.status)}
-            size="small"
-            color={statusColor(item.status)}
-            variant="outlined"
-          />
+          <Box display="flex" alignItems="center" gap={0.75} flexShrink={0}>
+            {item.anonymity && (
+              <Chip
+                icon={<VisibilityOffIcon sx={{ fontSize: '0.85rem !important' }} />}
+                label="Anonymous"
+                size="small"
+                sx={{
+                  bgcolor: t.violetSoft,
+                  color: t.violet,
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                }}
+              />
+            )}
+            <Chip
+              label={statusLabel(item.status)}
+              size="small"
+              sx={statusChipSx}
+            />
+          </Box>
         </Box>
 
         {/* Prompt */}
@@ -401,13 +434,12 @@ function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
             sx={{
               p: 1.5,
               mb: 1.5,
-              bgcolor: 'action.hover',
-              borderRadius: 1,
-              borderLeft: '3px solid',
-              borderLeftColor: 'divider',
+              bgcolor: t.surface2,
+              borderRadius: 2,
+              borderLeft: `3px solid ${t.border2}`,
             }}
           >
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: t.muted }}>
               {item.prompt}
             </Typography>
           </Box>
@@ -415,7 +447,7 @@ function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
 
         {/* Received: pending actions */}
         {box === 'received' && item.status === 'pending' && (
-          <Stack direction="row" spacing={1} mt={1}>
+          <Stack direction="row" spacing={1} mt={1.5}>
             <Button
               size="small"
               variant="contained"
@@ -429,6 +461,7 @@ function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
               color="inherit"
               onClick={() => void handleDecline()}
               disabled={decline.isPending}
+              sx={{ color: t.muted, borderColor: t.border2 }}
             >
               Decline
             </Button>
@@ -438,22 +471,45 @@ function FeedbackCard({ item, box, onRespond, onSuccess }: FeedbackCardProps) {
         {/* Sent: show responses */}
         {box === 'sent' && item.responses && item.responses.length > 0 && (
           <>
-            <Divider sx={{ my: 1.5 }} />
+            <Divider sx={{ my: 2, borderColor: t.border }} />
             <Typography
-              variant="caption"
-              color="text.secondary"
-              fontWeight={600}
-              display="block"
-              mb={1}
+              variant="overline"
+              component="div"
+              sx={{
+                fontSize: '0.68rem',
+                letterSpacing: '.08em',
+                color: t.muted,
+                mb: 1.5,
+              }}
             >
               Responses
             </Typography>
             {item.responses.map((r) => (
-              <Box key={r.id} sx={{ mb: 1.5 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {r.authorName ?? 'Anonymous'} · {formatDate(r.createdAt)}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+              <Box key={r.id} sx={{ mb: 2 }}>
+                <Box display="flex" alignItems="center" gap={0.75} mb={0.5}>
+                  {r.authorName ? (
+                    <Typography variant="caption" sx={{ color: t.muted, fontWeight: 600 }}>
+                      {r.authorName}
+                    </Typography>
+                  ) : (
+                    <Chip
+                      icon={<VisibilityOffIcon sx={{ fontSize: '0.8rem !important' }} />}
+                      label="Anonymous"
+                      size="small"
+                      sx={{
+                        bgcolor: t.violetSoft,
+                        color: t.violet,
+                        fontWeight: 600,
+                        fontSize: '0.68rem',
+                        height: 20,
+                      }}
+                    />
+                  )}
+                  <Typography variant="caption" sx={{ color: t.faint }}>
+                    · {formatDate(r.createdAt)}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: t.text }}>
                   {r.body}
                 </Typography>
               </Box>
@@ -491,6 +547,9 @@ export default function FeedbackPage() {
   );
   const [snackMsg, setSnackMsg] = useState<string | null>(null);
 
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
+
   const {
     data: received = [],
     isLoading: loadingReceived,
@@ -508,7 +567,7 @@ export default function FeedbackPage() {
     <Box>
       {/* Page header */}
       <Box
-        mb={3}
+        mb={4}
         display="flex"
         alignItems="flex-start"
         justifyContent="space-between"
@@ -516,10 +575,10 @@ export default function FeedbackPage() {
         gap={2}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
+          <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: t.text }}>
             Feedback
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{ color: t.muted }}>
             Request and give structured feedback with teammates.
           </Typography>
         </Box>
@@ -533,11 +592,31 @@ export default function FeedbackPage() {
       </Box>
 
       {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+      <Box
+        sx={{
+          borderBottom: `1px solid ${t.border}`,
+          mb: 3,
+        }}
+      >
         <Tabs
           value={tab}
           onChange={(_, v: FeedbackBox) => setTab(v)}
           aria-label="Feedback inbox tabs"
+          sx={{
+            '& .MuiTab-root': {
+              fontWeight: 600,
+              fontSize: '0.84rem',
+              textTransform: 'none',
+              color: t.muted,
+              minHeight: 44,
+              '&.Mui-selected': { color: t.primary },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: t.primary,
+              height: 2,
+              borderRadius: '2px 2px 0 0',
+            },
+          }}
         >
           <Tab
             label={`Received${received.length > 0 ? ` (${received.length})` : ''}`}
@@ -562,9 +641,9 @@ export default function FeedbackPage() {
             <CircularProgress />
           </Box>
         ) : received.length === 0 ? (
-          <Card variant="outlined">
+          <Card>
             <CardContent sx={{ py: 6, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: t.muted }}>
                 No feedback requests received yet.
               </Typography>
             </CardContent>
@@ -588,11 +667,10 @@ export default function FeedbackPage() {
             <CircularProgress />
           </Box>
         ) : sent.length === 0 ? (
-          <Card variant="outlined">
+          <Card>
             <CardContent sx={{ py: 6, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                No feedback requests sent yet. Use the button above to ask a
-                colleague.
+              <Typography variant="body2" sx={{ color: t.muted }}>
+                No requests sent yet. Use the button above to ask a colleague.
               </Typography>
             </CardContent>
           </Card>

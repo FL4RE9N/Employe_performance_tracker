@@ -25,6 +25,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import FormHelperText from '@mui/material/FormHelperText';
 import IconButton from '@mui/material/IconButton';
@@ -32,18 +33,14 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Snackbar from '@mui/material/Snackbar';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
+import { useTheme } from '@mui/material/styles';
 
 import {
   useGoals,
@@ -51,28 +48,13 @@ import {
   useUpdateGoal,
   useDeleteGoal,
 } from '../goals/useGoals';
+import { TOKENS } from '../theme';
+import type { Tokens } from '../theme';
 
 // ---- Helpers ----------------------------------------------------------------
 
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'An unexpected error occurred.';
-}
-
-function statusColor(
-  status: GoalDto['status'],
-): 'default' | 'info' | 'warning' | 'success' | 'error' {
-  switch (status) {
-    case 'active':
-      return 'info';
-    case 'at_risk':
-      return 'warning';
-    case 'done':
-      return 'success';
-    case 'dropped':
-      return 'error';
-    default:
-      return 'default';
-  }
 }
 
 function statusLabel(status: GoalDto['status']): string {
@@ -89,6 +71,26 @@ function statusLabel(status: GoalDto['status']): string {
       return 'Dropped';
     default:
       return status;
+  }
+}
+
+/**
+ * Returns sx-compatible bgcolor + color for goal status chips.
+ * Follows the V1.3 spec: soft bg + strong text, fontWeight 600.
+ */
+function statusChipSx(status: GoalDto['status'], t: Tokens) {
+  switch (status) {
+    case 'active':
+      return { bgcolor: t.primarySoft, color: t.primary };
+    case 'at_risk':
+      return { bgcolor: t.amberSoft, color: t.amber };
+    case 'done':
+      return { bgcolor: t.successSoft, color: t.success };
+    case 'dropped':
+      return { bgcolor: t.surface2, color: t.faint };
+    case 'draft':
+    default:
+      return { bgcolor: t.surface2, color: t.muted };
   }
 }
 
@@ -144,9 +146,9 @@ function NewGoalDialog({ open, onClose, onSuccess }: NewGoalDialogProps) {
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>New Goal</DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>New goal</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <DialogContent>
+        <DialogContent sx={{ pt: 1.5 }}>
           {apiError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {apiError}
@@ -266,7 +268,7 @@ function NewGoalDialog({ open, onClose, onSuccess }: NewGoalDialogProps) {
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -278,7 +280,7 @@ function NewGoalDialog({ open, onClose, onSuccess }: NewGoalDialogProps) {
               pending ? <CircularProgress size={16} color="inherit" /> : null
             }
           >
-            {pending ? 'Creating…' : 'Create'}
+            {pending ? 'Creating…' : 'Create goal'}
           </Button>
         </DialogActions>
       </Box>
@@ -338,9 +340,9 @@ function EditGoalDialog({ goal, onClose, onSuccess }: EditGoalDialogProps) {
 
   return (
     <Dialog open={!!goal} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Edit Goal</DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>Edit goal</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <DialogContent>
+        <DialogContent sx={{ pt: 1.5 }}>
           {apiError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {apiError}
@@ -423,7 +425,7 @@ function EditGoalDialog({ goal, onClose, onSuccess }: EditGoalDialogProps) {
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={handleClose} disabled={pending}>
             Cancel
           </Button>
@@ -480,19 +482,19 @@ function DeleteConfirmDialog({
 
   return (
     <Dialog open={!!goal} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Delete goal?</DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>Delete goal?</DialogTitle>
       <DialogContent>
         {apiError && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {apiError}
           </Alert>
         )}
-        <Typography variant="body2">
+        <Typography variant="body2" color="text.secondary">
           Are you sure you want to delete{' '}
           <strong>{goal?.title}</strong>? This action cannot be undone.
         </Typography>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
         <Button onClick={handleClose} disabled={pending}>
           Cancel
         </Button>
@@ -512,10 +514,142 @@ function DeleteConfirmDialog({
   );
 }
 
+// ---- Goal Row Card ----------------------------------------------------------
+
+interface GoalRowProps {
+  goal: GoalDto;
+  t: Tokens;
+  onEdit: (goal: GoalDto) => void;
+  onDelete: (goal: GoalDto) => void;
+}
+
+function GoalRow({ goal, t, onEdit, onDelete }: GoalRowProps) {
+  const chipSx = statusChipSx(goal.status, t);
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        px: 2.5,
+        py: 2,
+        borderRadius: '12px',
+        border: `1px solid ${t.border}`,
+        bgcolor: t.surface,
+        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+        '&:hover': {
+          borderColor: t.border2,
+          boxShadow: t.shadowSm,
+        },
+        flexWrap: 'wrap',
+      }}
+    >
+      {/* Metric tag */}
+      <Chip
+        label={goal.metricLabel}
+        size="small"
+        sx={{
+          bgcolor: t.primarySoft,
+          color: t.primary,
+          fontWeight: 600,
+          fontSize: '0.72rem',
+          height: 22,
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Title — grows to fill remaining space */}
+      <Typography
+        variant="body2"
+        fontWeight={500}
+        sx={{
+          flex: 1,
+          minWidth: 120,
+          color: t.text,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {goal.title}
+      </Typography>
+
+      {/* Target */}
+      <Typography
+        variant="body2"
+        sx={{
+          color: goal.target ? t.muted : t.faint,
+          fontSize: '0.8rem',
+          minWidth: 80,
+          maxWidth: 180,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
+      >
+        {goal.target ?? '—'}
+      </Typography>
+
+      {/* Status chip */}
+      <Chip
+        label={statusLabel(goal.status)}
+        size="small"
+        sx={{
+          ...chipSx,
+          fontWeight: 600,
+          fontSize: '0.72rem',
+          height: 22,
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Visibility */}
+      <Chip
+        label={goal.visibility.charAt(0).toUpperCase() + goal.visibility.slice(1)}
+        size="small"
+        sx={{
+          bgcolor: t.surface2,
+          color: t.muted,
+          fontWeight: 500,
+          fontSize: '0.72rem',
+          height: 22,
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Actions */}
+      <Box display="flex" gap={0.5} flexShrink={0}>
+        <Tooltip title="Edit">
+          <IconButton
+            size="small"
+            onClick={() => onEdit(goal)}
+            sx={{ color: t.muted, '&:hover': { color: t.primary } }}
+          >
+            <EditIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Delete">
+          <IconButton
+            size="small"
+            onClick={() => onDelete(goal)}
+            sx={{ color: t.muted, '&:hover': { color: t.red } }}
+          >
+            <DeleteIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
+  );
+}
+
 // ---- Main Page --------------------------------------------------------------
 
 export default function GoalsPage() {
   const { data: goals = [], isLoading, error } = useGoals('mine');
+  const theme = useTheme();
+  const t = TOKENS[theme.palette.mode];
 
   const [newGoalOpen, setNewGoalOpen] = useState(false);
   const [editGoal, setEditGoal] = useState<GoalDto | null>(null);
@@ -525,25 +659,34 @@ export default function GoalsPage() {
   return (
     <Box>
       {/* Page header */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+      <Box mb={5}>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: t.text }}>
           Goals
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: t.muted }}>
           Track and manage your performance goals.
         </Typography>
       </Box>
 
       <Card>
         <CardContent sx={{ p: 3 }}>
+          {/* Section toolbar */}
           <Box
             display="flex"
             alignItems="center"
             justifyContent="space-between"
-            mb={2}
+            mb={0.5}
           >
-            <Typography variant="h6" fontWeight={600}>
-              My Goals
+            <Typography
+              variant="overline"
+              component="div"
+              sx={{
+                fontSize: '0.68rem',
+                letterSpacing: '.1em',
+                color: t.muted,
+              }}
+            >
+              My goals
             </Typography>
             <Button
               variant="contained"
@@ -555,6 +698,8 @@ export default function GoalsPage() {
             </Button>
           </Box>
 
+          <Divider sx={{ mb: 2.5, borderColor: t.border }} />
+
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {getErrorMessage(error)}
@@ -562,115 +707,54 @@ export default function GoalsPage() {
           )}
 
           {isLoading ? (
-            <Box display="flex" justifyContent="center" py={4}>
+            <Box display="flex" justifyContent="center" py={5}>
               <CircularProgress />
             </Box>
+          ) : goals.length === 0 ? (
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              py={6}
+              gap={1.5}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '12px',
+                  bgcolor: t.surface2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FlagOutlinedIcon sx={{ color: t.faint, fontSize: 24 }} />
+              </Box>
+              <Typography variant="body2" sx={{ color: t.muted }}>
+                No goals yet. Set your first goal to get started.
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setNewGoalOpen(true)}
+              >
+                New goal
+              </Button>
+            </Box>
           ) : (
-            <TableContainer sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Metric</TableCell>
-                    <TableCell>Title</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Target</TableCell>
-                    <TableCell>Visibility</TableCell>
-                    <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {goals.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          No goals yet. Click &ldquo;New goal&rdquo; to get started.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    goals.map((goal) => (
-                      <TableRow key={goal.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {goal.metricLabel}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ maxWidth: 280 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {goal.title}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={statusLabel(goal.status)}
-                            size="small"
-                            color={statusColor(goal.status)}
-                            variant={
-                              goal.status === 'done' ? 'filled' : 'outlined'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            color={goal.target ? 'text.primary' : 'text.disabled'}
-                            sx={{
-                              maxWidth: 180,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {goal.target ?? '—'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              goal.visibility.charAt(0).toUpperCase() +
-                              goal.visibility.slice(1)
-                            }
-                            size="small"
-                            variant="outlined"
-                            color={
-                              goal.visibility === 'public'
-                                ? 'primary'
-                                : 'default'
-                            }
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              onClick={() => setEditGoal(goal)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => setDeleteGoal(goal)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Box display="flex" flexDirection="column" gap={1.5}>
+              {goals.map((goal) => (
+                <GoalRow
+                  key={goal.id}
+                  goal={goal}
+                  t={t}
+                  onEdit={setEditGoal}
+                  onDelete={setDeleteGoal}
+                />
+              ))}
+            </Box>
           )}
         </CardContent>
       </Card>
