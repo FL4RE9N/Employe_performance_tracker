@@ -25,10 +25,14 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import GroupsIcon from '@mui/icons-material/Groups';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { useTheme } from '@mui/material/styles';
 import { useSession } from '../auth/useSession';
 import { useLogout } from '../auth/useSession';
 import NotificationBell from '../notifications/NotificationBell';
 import { useNotificationStream } from '../notifications/useNotificationStream';
+import { useThemeMode } from '../theme-mode';
 
 const DRAWER_WIDTH = 240;
 
@@ -63,6 +67,9 @@ export default function AppShell() {
   const { data: user } = useSession();
   const logout = useLogout();
   const location = useLocation();
+  const { mode, toggle } = useThemeMode();
+  const theme = useTheme();
+  const brand = `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`;
 
   // Mount the SSE stream once for the entire authenticated session
   useNotificationStream();
@@ -85,8 +92,18 @@ export default function AppShell() {
 
   const drawerContent = (
     <Box sx={{ overflow: 'auto', pt: 1 }}>
-      <Box sx={{ px: 3, py: 2 }}>
-        <Typography variant="h6" fontWeight={700} color="primary">
+      <Box sx={{ px: 2.5, py: 2, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+        <Box
+          sx={{
+            width: 30,
+            height: 30,
+            borderRadius: 2,
+            background: brand,
+            flexShrink: 0,
+            boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
+          }}
+        />
+        <Typography variant="h6" fontWeight={700}>
           Performance Tracker
         </Typography>
       </Box>
@@ -123,7 +140,13 @@ export default function AppShell() {
         position="fixed"
         color="inherit"
         elevation={0}
-        sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}
+        sx={{
+          zIndex: (t) => t.zIndex.drawer + 1,
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
       >
         <Toolbar>
           <IconButton
@@ -145,6 +168,12 @@ export default function AppShell() {
             Performance Tracker
           </Typography>
           <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
+
+          <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+            <IconButton onClick={toggle} size="small" sx={{ mr: 0.5 }} aria-label="toggle theme">
+              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
 
           {user && <NotificationBell />}
 
