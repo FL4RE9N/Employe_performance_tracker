@@ -218,18 +218,18 @@ function CycleStepper({ activeStep }: CycleStepperProps) {
               </Typography>
             </Box>
 
-            {/* Connector line */}
+            {/* Connector line — forms a continuous progress rail through the dots */}
             {!isLast && (
               <Box
                 sx={{
                   flex: 1,
-                  height: 2,
-                  borderRadius: 1,
-                  mx: 1,
-                  mt: '-18px', /* align with dot center */
+                  height: 3,
+                  borderRadius: 999,
+                  mx: 0.5,
+                  mt: '12.5px', /* sit on the 28px dot's vertical center */
                   bgcolor: isDone ? t.success : t.border,
                   transition: 'background-color .3s',
-                  minWidth: 12,
+                  minWidth: 16,
                   alignSelf: 'flex-start',
                 }}
               />

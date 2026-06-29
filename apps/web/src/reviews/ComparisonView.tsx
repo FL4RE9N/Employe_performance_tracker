@@ -4,10 +4,11 @@
  * If the API returns 403 → show sealed/locked state.
  * If releaseGated → show only self side with a note.
  */
+import { useEffect, useState } from 'react';
 import { ApiError } from '../lib/api';
 import { useComparison } from './useReviews';
 import { QUESTIONS, METRICS } from '@perf-tracker/shared';
-import { reveal } from './animations';
+import { reveal, sealBreak } from './animations';
 
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -19,6 +20,7 @@ import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import { useTheme } from '@mui/material/styles';
 
 import { TOKENS, BRAND_GRADIENT } from '../theme';
@@ -114,6 +116,25 @@ export default function ComparisonView({ cycleId }: ComparisonViewProps) {
   const theme = useTheme();
   const t = TOKENS[theme.palette.mode];
 
+  // One-time "seal opens" ceremony when the full comparison first reveals in this
+  // session (per cycle). Pure presentation — no data/behavior change.
+  const [sealing, setSealing] = useState(false);
+  useEffect(() => {
+    if (!data || data.releaseGated) return;
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const key = `pt-revealed-${cycleId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch {
+      return;
+    }
+    setSealing(true);
+    const id = window.setTimeout(() => setSealing(false), 850);
+    return () => window.clearTimeout(id);
+  }, [data, cycleId]);
+
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
@@ -186,6 +207,36 @@ export default function ComparisonView({ cycleId }: ComparisonViewProps) {
   const revealAnimation = prefersReducedMotion ? undefined : `${reveal} .3s ease`;
 
   return (
+    <>
+      {sealing && (
+        <Box
+          sx={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            zIndex: (th) => th.zIndex.modal + 2,
+          }}
+        >
+          <Box
+            sx={{
+              width: 104,
+              height: 104,
+              borderRadius: '50%',
+              background: BRAND_GRADIENT(t),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: t.shadowLg,
+              animation: `${sealBreak} .85s cubic-bezier(.4,0,.2,1) forwards`,
+            }}
+          >
+            <LockOpenIcon sx={{ color: '#fff', fontSize: 48 }} />
+          </Box>
+        </Box>
+      )}
     <Box
       sx={{
         animation: revealAnimation,
@@ -373,5 +424,6 @@ export default function ComparisonView({ cycleId }: ComparisonViewProps) {
         </>
       )}
     </Box>
+    </>
   );
 }
