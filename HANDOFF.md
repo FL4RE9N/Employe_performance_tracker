@@ -1,6 +1,6 @@
 # Performance Tracker — Session Handoff
 
-_Last updated: 2026-06-24 • Phase 0 **and Phase 1 (MVP)** are **complete and verified end-to-end**._
+_Last updated: 2026-07-01 • Phase 0 + Phase 1 (MVP) **and the V1.3 UI uplift** are complete and verified. **Ready for Phase 2.** Latest commit: `d8b7959`._
 
 This doc lets a fresh session (or a new developer) pick up immediately. For full product context
 read `plan/` (the approved plan, files 00–08) and `README.md` (run instructions).
@@ -23,6 +23,11 @@ read `plan/` (the approved plan, files 00–08) and `README.md` (run instruction
   A committed, re-runnable real-DB smoke (`scripts/integration-smoke.ps1`, run against the live stack)
   drives the full cycle and reports **29/29** invariant checks passing with emails delivered to Mailpit;
   the authenticated SPA was also confirmed in a real browser (zero console errors).
+- **UI uplift to the V1.3 design is done:** token-based MUI theme with **light + dark mode**
+  (persisted toggle) in `apps/web/src/theme.ts` + `theme-mode.tsx`; every screen restyled — shell,
+  the Reviews hero (stepper rail, ScorePills, sealed→reveal, comparison score bars), appreciation
+  wall, admin self-vs-mentor histograms, etc. Restyle-only (behavior/tests unchanged); independently
+  browser-verified (~98% design fidelity, 0 console errors).
 - **No AWS/CDK** — cloud concerns sit behind provider interfaces for a later cutover.
 - Next milestone: **Phase 2 (Microsoft Entra ID SSO + directory sync)** — see `plan/06-roadmap.md`.
 
@@ -88,9 +93,12 @@ docker compose down          # stop Postgres + Mailpit, KEEP the database data
 docker compose down -v       # stop AND wipe the DB volume (next start needs migrate + seed again)
 ```
 
-> ⚠️ **Note for the next session:** the API and web were left **running in the previous session's
-> background** (API pid was 12480, web pid 11072 — these change). If `pnpm dev:api`/`dev:web` report
-> "port in use", the old ones are still up: stop them via the kill-by-port command above, then start fresh.
+> ⚠️ **Note for the next session:** dev servers may be left running in the background. If
+> `pnpm dev:api`/`dev:web` report "port in use", stop them via the kill-by-port command above, then
+> start fresh. **Demo accounts** (besides admin), created at runtime, password `ChangeMe123!`:
+> `mentor@perf-tracker.local` (Demo Mentor) mentors `mentee@perf-tracker.local` (Demo Mentee).
+> If they're missing (fresh DB), recreate via Admin → Users + a pairing, or just run
+> `scripts/integration-smoke.ps1` (it creates its own throwaway users + a full cycle).
 
 ---
 
@@ -218,9 +226,37 @@ asserts every invariant (prints `29 passed, 0 failed`).
 for the DI-backed e2e tests (esbuild strips it). Don't remove it or the authz e2e tests break.
 
 > ⚠️ **Environment note:** Docker Desktop on this machine intermittently stops its engine; if the API
-> logs `P1001 Can't reach database server`, (re)start Docker Desktop, `docker compose up -d`, then
-> restart `pnpm dev:api` (Prisma needs a fresh connection). The 29/29 integration run was captured
-> during a healthy window.
+> logs `P1001 Can't reach database server`, (re)start Docker Desktop (kill `Docker Desktop` +
+> `com.docker.backend` processes and relaunch the exe if a plain start hangs), `docker compose up -d`,
+> then restart `pnpm dev:api` (Prisma needs a fresh connection).
+>
+> **Other session gotchas:** (1) `prisma migrate dev` refuses in a non-interactive shell — instead
+> generate SQL via `prisma migrate diff --from-url $DATABASE_URL --to-schema-datamodel prisma/schema.prisma --script`
+> into a new `prisma/migrations/<timestamp>_<name>/migration.sql` (write it **BOM-less** — PowerShell
+> `Out-File -Encoding utf8` adds a BOM that Postgres rejects with `syntax error at "﻿"`), then
+> `prisma migrate deploy`. (2) In PowerShell, prefer **`git commit -F <file>`** over `-m @'…'@`
+> here-strings (the here-string intermittently mis-parses and git treats the message text as pathspecs).
+
+---
+
+## 🎨 UI uplift (V1.3 design) — what shipped
+
+Phase-1 functionality restyled to the approved V1.3 design (mockup lives in the user's Downloads as
+`Performance TrackerV1.3.html`). **Restyle-only — no logic/API/behavior changes; all tests still green.**
+- **Theme system:** `apps/web/src/theme.ts` exports `getTheme(mode)` + a `TOKENS` record (exact light
+  **and** dark `--pt-*` values) + `BRAND_GRADIENT`. `apps/web/src/theme-mode.tsx` provides
+  `ThemeModeProvider` + `useThemeMode()` with a persisted (localStorage `pt-theme`) light/dark toggle.
+  For soft/surface2/shadow values not on the MUI palette, read `TOKENS[theme.palette.mode]`.
+- **Screens restyled:** app shell (gradient logo, surface app bar, primary-soft active nav, top-bar
+  theme toggle); Reviews hero (continuous stepper rail, ScorePills form + "Submit & lock", sealed
+  state + `sealBreak`/`reveal` keyframes in `apps/web/src/reviews/animations.ts`, self/mentor comparison
+  bars + colored delta chips); Home, Goals, Feedback, Appreciation (gradient avatars + reaction pills),
+  1-on-1s, Notifications, Admin users + the self-vs-mentor rating histograms. Status chips use a
+  soft-bg/strong-text token mapping.
+- **NOT built:** a marketing/landing page (a separate 3D-hero landing design is being explored in the
+  design tool; it would be a new standalone route/app, not part of the authed SPA).
+
+---
 
 ## 🔜 What's next — Phase 2 (Microsoft identity)
 
