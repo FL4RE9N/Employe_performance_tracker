@@ -1,6 +1,6 @@
 # Performance Tracker — Session Handoff
 
-_Last updated: 2026-07-01 • Phase 0 + Phase 1 (MVP) **and the V1.3 UI uplift** are complete and verified. **Ready for Phase 2.** Latest commit: `d8b7959`._
+_Last updated: 2026-07-01 • Phase 0 + Phase 1 (MVP) **and the V1.3 UI uplift** are complete and verified. **Next step: integrate the marketing landing page → then Phase 2.** Latest commit: `76f6f7e`._
 
 This doc lets a fresh session (or a new developer) pick up immediately. For full product context
 read `plan/` (the approved plan, files 00–08) and `README.md` (run instructions).
@@ -29,7 +29,28 @@ read `plan/` (the approved plan, files 00–08) and `README.md` (run instruction
   wall, admin self-vs-mentor histograms, etc. Restyle-only (behavior/tests unchanged); independently
   browser-verified (~98% design fidelity, 0 console errors).
 - **No AWS/CDK** — cloud concerns sit behind provider interfaces for a later cutover.
-- Next milestone: **Phase 2 (Microsoft Entra ID SSO + directory sync)** — see `plan/06-roadmap.md`.
+- **Immediate next step: integrate the 3D marketing landing page** — a standalone HTML already designed
+  + exported (see "🚀 Next step — landing page" below) becomes the app's public front door.
+- **After that**, the next milestone is **Phase 2 (Microsoft Entra ID SSO + directory sync)** — see `plan/06-roadmap.md`.
+
+---
+
+## 💡 The idea (what we're building)
+
+An internal **employee performance & growth** platform (a "10x performance culture" tool in the
+Lattice / 15Five / Leapsome vein) for a mid-size tech org. The heart is a **fair, anti-bias review
+cycle**: an employee and their assigned mentor each complete the same review (4 fixed questions + 5
+metric ratings, 1–5 with anchors) **privately** — **neither side sees the other's until both submit**
+(lock-before-reveal) — then it reveals side-by-side for a calibrated 1-on-1, is released to the
+employee, and acknowledged. Around that core: goals tracking (5 metrics), an appreciation wall, peer
+feedback (with anonymity), 1-on-1 meetings, live SSE + email notifications with a reminder sweep, and
+an admin analytics dashboard (self-vs-mentor rating distribution, no forced curve). Built local-first
+(Docker + Postgres) with all cloud concerns behind provider seams. Roles/visibility are enforced
+**server-side**. Microsoft Entra SSO + AD directory sync land in **Phase 2**; AWS deployment later.
+Full product/tech plan lives in `plan/`.
+
+The **public front door** is a cinematic, 3D-animated marketing landing page (see "🚀 Next step" below)
+that sells the fairness story to unauthenticated visitors and routes "Sign in" into the app.
 
 ---
 
@@ -253,12 +274,47 @@ Phase-1 functionality restyled to the approved V1.3 design (mockup lives in the 
   bars + colored delta chips); Home, Goals, Feedback, Appreciation (gradient avatars + reaction pills),
   1-on-1s, Notifications, Admin users + the self-vs-mentor rating histograms. Status chips use a
   soft-bg/strong-text token mapping.
-- **NOT built:** a marketing/landing page (a separate 3D-hero landing design is being explored in the
-  design tool; it would be a new standalone route/app, not part of the authed SPA).
+- **Marketing landing page:** now designed in the design tool and **exported to a standalone HTML** —
+  integrating it as the public front door is the immediate next step (see "🚀 Next step" below).
 
 ---
 
-## 🔜 What's next — Phase 2 (Microsoft identity)
+## 🚀 Next step (do this BEFORE Phase 2) — integrate the marketing landing page
+
+A cinematic, 3D-animated marketing landing page was designed in the design tool and **exported as a
+self-contained standalone HTML**:
+- **File:** `C:\Users\RahulVenkatSaravanan\Downloads\Perf Landing Standalone.html`
+  (inline CSS/JS + a WebGL/canvas 3D background; no external assets). ⚠️ It lives in Downloads,
+  **outside the repo** — first bring it into the project.
+
+**The idea:** this is the app's **public front door** — a cinematic hero over a live 3D background, a
+scrollytelling "sealed → revealed" beat that dramatizes lock-before-reveal, feature highlights, and
+CTAs, all in the V1.3 brand (indigo `#2563eb` → violet `#7c3aed` on near-black). Unauthenticated
+visitors see this; **"Sign in / Get started" routes into the existing SPA** (`/login`).
+
+**Integration task (the immediate next slice):**
+1. Copy the HTML into the repo. **Recommended (lowest-risk):** serve it as a **static public page** —
+   put it in `apps/web/public/` (e.g. `public/landing.html`) so Vite serves it verbatim, keeping the
+   WebGL/JS exactly as designed. (Assets are already inlined.)
+2. **Front-door routing:** today `/` is the authed dashboard behind `ProtectedRoute`. Make the landing
+   the public entry — e.g. an unauthenticated visitor at `/` gets the landing; authenticated users are
+   sent to the dashboard. Simplest: serve the landing at `/` (or `/welcome`) and move the app under a
+   guard that redirects signed-out users there; keep existing deep links working. Wire the landing's
+   "Sign in"/"Get started" buttons to `/login`.
+3. **Alternative (more work):** port the landing into a React `LandingPage` component (translate the
+   3D background to a React-mounted canvas/Three.js). Only if you want it fully inside the SPA;
+   otherwise 1+2 is faster and keeps the design pixel-exact.
+4. Keep it self-contained + performant (honor `prefers-reduced-motion`, pause the 3D offscreen), and
+   confirm the "Sign in" path reaches the working login. Verify in a browser, then commit + push.
+
+**Done when:** an unauthenticated visitor hits the app, sees the 3D landing, and can click through to
+sign in; authenticated users still land in the app; typecheck / lint / build stay green.
+
+_Only after the landing page is integrated do we start **Phase 2** below._
+
+---
+
+## 🔜 After the landing page — Phase 2 (Microsoft identity)
 
 Per `plan/06-roadmap.md`: Entra ID SSO (MSAL in the SPA, API validates Entra tokens, mint the same
 `pt_session` cookie via the pluggable `AUTH_STRATEGY`), directory sync (Graph `users/delta`), and
@@ -275,7 +331,7 @@ Phase 2 cannot be built/verified without a real tenant. Bring:
 Until these exist, SSO code is unverifiable — keep building only behind the pluggable `AUTH_STRATEGY`
 seam and gate the cutover on a live tenant.
 
-### Suggested first steps for the next session
+### Phase 2 first steps (after the landing page ships + SSO prerequisites are in hand)
 1. `git pull`, then `pnpm install`.
 2. Start Docker Desktop, then `.\scripts\dev.ps1 -Migrate`; confirm admin login at http://localhost:5173.
 3. Read `plan/06-roadmap.md` (Phase 2 tasks) and the Microsoft-integration gotchas in `plan/07-open-questions-and-risks.md`.
